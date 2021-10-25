@@ -149,7 +149,8 @@ namespace car{
 		    if (*it == 0) continue;
 			aiger_and* aa = aiger_is_and (const_cast<aiger*>(aig), *it);
 			assert (aa != NULL);
-			add_clauses_from_gate (aa);
+			//add_clauses_from_gate (aa);
+			add_prime_clauses_from_gate (aa);
 		}
 		
 		set_latches_start ();
@@ -164,10 +165,18 @@ namespace car{
 			assert (aa != NULL);
 			add_clauses_from_gate (aa);
 		}
+
+		//create clauses for next map
+		for (auto it = next_map_.begin (); it != next_map_.end (); ++it){
+			//add clauses for prime (it->first) <-> it->second
+			cls_.push_back (clause (prime (-(it->first)), it->second));
+			cls_.push_back (clause (prime (it->first), -(it->second)));
+		}
 		
-		//create clauses for true and false
+		//create clauses for true
 		cls_.push_back (clause (true_));
-		cls_.push_back (clause (-false_));
+		cls_.push_back (clause (prime (true_)));
+		
 	}
 	
 	
@@ -243,6 +252,38 @@ namespace car{
 		}
 			
 	}
+
+	void Model::add_prime_clauses_from_gate (const aiger_and* aa){
+		assert (aa != NULL);
+		assert (!is_true (aa->lhs) && !is_false (aa->lhs));
+		
+		if (is_true (aa->rhs0))
+		{
+			cls_.push_back (clause (car_var (aa->lhs), -car_var (aa->rhs1)));
+			cls_.push_back (clause (-car_var (aa->lhs), car_var (aa->rhs1)));
+			//add the prime for aa->lhs
+			cls_.push_back (clause (prime (car_var (aa->lhs)), prime (-car_var (aa->rhs1))));
+			cls_.push_back (clause (prime (-car_var (aa->lhs)), prime (car_var (aa->rhs1))));
+		}
+		else if (is_true (aa->rhs1))
+		{
+			cls_.push_back (clause (car_var (aa->lhs), -car_var (aa->rhs0)));
+			cls_.push_back (clause (-car_var (aa->lhs), car_var (aa->rhs0)));
+			//add the prime for aa->lhs
+			cls_.push_back (clause (prime (car_var (aa->lhs)), prime (-car_var (aa->rhs0))));
+			cls_.push_back (clause (prime (-car_var (aa->lhs)), prime (car_var (aa->rhs0))));
+		}
+		else
+		{
+			cls_.push_back (clause (car_var (aa->lhs), -car_var (aa->rhs0), -car_var (aa->rhs1)));
+			cls_.push_back (clause (-car_var (aa->lhs), car_var (aa->rhs0)));
+			cls_.push_back (clause (-car_var (aa->lhs), car_var (aa->rhs1)));
+			//add the prime for aa->lhs
+			cls_.push_back (clause (prime (car_var (aa->lhs)), prime (-car_var (aa->rhs0)), prime (-car_var (aa->rhs1))));
+			cls_.push_back (clause (prime (-car_var (aa->lhs)), prime (car_var (aa->rhs0))));
+			cls_.push_back (clause (prime (-car_var (aa->lhs)), prime (car_var (aa->rhs1))));
+		}
+	}
 	
 	void Model::set_init (const aiger* aig)
 	{
@@ -278,6 +319,19 @@ namespace car{
 		}
 	}
 	
+	int Model::prime (const int id)
+	{
+		assert (id != 0 && abs(id) <= max_id_/2);
+		
+		return (id > 0 ? (id+max_id_/2) : (id-max_id_/2));
+	}
+		
+	int Model::previous (const int id){
+		assert (abs(id) > max_id_/2);
+		return (id > 0 ? (id-max_id_/2) : (id+max_id_/2));
+	}
+
+	/*
 	int Model::prime (const int id)
 	{
 		nextMap::iterator it = next_map_.find (abs (id));
@@ -325,7 +379,12 @@ namespace car{
 		}
 		uc = tmp;
 	}
-	
+	*/
+	void Model::shrink_to_previous_vars (Cube& uc, bool& constraint){
+		for (int i = 0; i < uc.size (); i ++)
+			uc[i] = previous(uc[i]);
+	}
+
 	void Model::shrink_to_latch_vars (Cube& uc, bool& constraint)
 	{
 		Cube tmp;

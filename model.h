@@ -39,7 +39,8 @@ public:
 	~Model () {}
 	
 	int prime (const int);
-	std::vector<int> previous (const int);
+	int previous (const int id);
+	//std::vector<int> previous (const int);
 	
 	bool state_var (const int id)  {return (id >= 1) && (id <= num_inputs_+num_latches_);}
 	bool latch_var (const int id)  {return (id >= num_inputs_+1) && (id <= num_inputs_+num_latches_);}
@@ -164,6 +165,7 @@ private:
 	aiger_and* necessary_gate (const unsigned id, const aiger* aig);
 	void recursively_add (const aiger_and* aa, const aiger* aig, hash_set<unsigned>& exist_gates, std::vector<unsigned>& gates);
 	void add_clauses_from_gate (const aiger_and* aa);
+	void add_prime_clauses_from_gate (const aiger_and* aa)
 	void set_init (const aiger* aig);
 	void set_constraints (const aiger* aig);
 	void set_outputs (const aiger* aig);
