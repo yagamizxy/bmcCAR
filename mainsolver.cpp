@@ -212,7 +212,7 @@ namespace car
 		}
 		else
 		{
-			/*
+		
 		    Assignment tmp;
 		    tmp.resize (model_->num_latches (), 0);
 		    for (int i = model_->num_inputs ()+1; i <= model_->num_inputs () + model_->num_latches (); i ++)
@@ -236,7 +236,6 @@ namespace car
 		    {
 		        //TO BE DONE
 		    }
-			*/
 		}
 		model = res;
 	}

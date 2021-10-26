@@ -42,11 +42,11 @@ namespace car{
 		num_ands_ = aig->num_ands;
 		num_constraints_ = aig->num_constraints;
 		num_outputs_ = aig->num_outputs;
-		
+		true_ = aig->maxvar+1;
+		false_ = -true_;
 		//preserve two more ids for TRUE (max_id_ - 1) and FALSE (max_id_)
-		max_id_ = aig->maxvar+2;
-		true_ = max_id_ - 1;
-		false_ = max_id_;
+		max_id_ = 2*(aig->maxvar+1);
+		
 		
 		collect_trues (aig);
 		
@@ -321,6 +321,8 @@ namespace car{
 	
 	int Model::prime (const int id)
 	{
+		if(!(id != 0 && abs(id) <= max_id_/2))
+			cout<<"id is "<<id<<endl;
 		assert (id != 0 && abs(id) <= max_id_/2);
 		
 		return (id > 0 ? (id+max_id_/2) : (id-max_id_/2));
@@ -381,8 +383,15 @@ namespace car{
 	}
 	*/
 	void Model::shrink_to_previous_vars (Cube& uc, bool& constraint){
-		for (int i = 0; i < uc.size (); i ++)
-			uc[i] = previous(uc[i]);
+		int id = max_id ()/2;
+		Cube tmp;
+		for (auto it = uc.begin(); it != uc.end(); ++it){
+			if (id < abs(*it) && (abs(*it) <= max_id()))
+				tmp.push_back (previous (*it));
+		}
+		uc = tmp;
+		//for (int i = 0; i < uc.size (); i ++)
+			//uc[i] = previous(uc[i]);
 	}
 
 	void Model::shrink_to_latch_vars (Cube& uc, bool& constraint)
