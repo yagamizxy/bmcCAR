@@ -36,7 +36,6 @@ extern "C" {
 
 #include "statistics.h"  //zhang xiaoyu made this change
 #include <vector>
-#include <set>
 #include <assert.h>
 #include <fstream>      //zhang xiaou add this code
 
@@ -69,13 +68,12 @@ namespace car
 		//functions
 		bool solve_assumption ();
 		std::vector<int> get_model ();    //get the model from SAT solver
- 		std::vector<int> get_uc (std::vector<int>& uc_contain_s);       //get UC from SAT solver
+ 		std::vector<int> get_uc ();       //get UC from SAT solver
 		//zhang xiaoyu code begins
 		void update_assumption(std::vector<int> new_reason);
 		std::vector<int> get_solver_uc();  //get UC from sat solver 
-	    std::vector<int> get_mus(std::vector<int>& mus_reason,std::vector<int>& uc_contain_s);
-
-		std::vector<int> cube_difference (std::vector<int>& maincube,std::vector<int>& subcube);
+	    std::vector<int> get_mus(std::vector<int> mus_reason);
+		
         // void recursive_model_rotation();
 	    //zhang xiaoyu code ends	
 		void add_cube (const std::vector<int>&);

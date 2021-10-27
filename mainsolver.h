@@ -78,7 +78,7 @@ class MainSolver : public CARSolver
 		//this version is used for bad check only
 		Cube get_conflict (const int bad);
 		//static Cube empty_cube_;
-		Cube get_conflict (const bool forward, const bool minimal, bool& constraint,Cube empty_cube = *new Cube);
+		Cube get_conflict (const bool forward, const bool minimal, bool& constraint);
 		
 		void add_new_frame (const Frame& frame, const int frame_level, const bool forward);
 		//overload

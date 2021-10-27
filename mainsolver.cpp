@@ -91,7 +91,7 @@ namespace car
 	Cube MainSolver::get_conflict (const int bad)
 	{
 		Cube empty_uc;
-		Cube conflict = get_uc (empty_uc);
+		Cube conflict = get_uc ();
 		Cube res;
 		for (int i = 0; i < conflict.size (); i ++)
 		{
@@ -103,9 +103,9 @@ namespace car
 		return res;
 	}
 	
-	Cube MainSolver::get_conflict (const bool forward, const bool minimal, bool& constraint,Cube empty_cube)
+	Cube MainSolver::get_conflict (const bool forward, const bool minimal, bool& constraint)
 	{
-		Cube conflict = get_uc (empty_cube);
+		Cube conflict = get_uc ();
 		
 		if (minimal)
 		{

@@ -181,26 +181,15 @@ namespace car
     	return reason;
 	}
     //count_main_solver_SAT_time_end 
-	std::vector<int> CARSolver::get_mus(std::vector<int>& m_reason,std::vector<int>& uc_contain_s)
+	std::vector<int> CARSolver::get_mus(std::vector<int> m_reason)
 	{
-		std::vector<int> mus;                       //mus core
-		//int sat_times = 0;                          //sat solver calling times
-		int long_flag = (assumption_.size() < 216)?216:0;
 
-		if(uc_contain_s.empty()){
-			clear_assumption();                    //clear the assumption before
-			update_assumption(m_reason);           //update assumption to the UC returned by last sat call
-		}
-		else{
-			std::vector<int> reason_diff_uccontains = cube_difference (m_reason,uc_contain_s);
-			clear_assumption();                    //clear the assumption before
-			update_assumption(reason_diff_uccontains);
-			mus = cube_difference (m_reason,reason_diff_uccontains);
-		}
-		
+		std::vector<int> mus;                       //mus core
 		//int long_flag = 216;
-		//int max_sat_time = int(pow(assumption_.size(),4)+1);
-		//stats_->record_max_get_uc_sat_time(max_sat_time);
+		clear_assumption();                    //clear the assumption before
+		update_assumption(m_reason);           //update assumption to the UC returned by last sat call
+		int long_flag = (assumption_.size() < 216)?assumption_.size():0;
+		//int max_interation = 25;
 		while(assumption_.size()>0 && long_flag>0)
 		{
 			long_flag--;
@@ -223,7 +212,6 @@ namespace car
 			{
 				assumption_pop();       //remove mus core from assumption_
 			}
-			//sat_times++;
 			
 			if(res)                      //if sat,then the element being poped is a transition clause
 			{
@@ -231,10 +219,8 @@ namespace car
 			}
 			else
 			{
-				int assumption_size = assumption_.size();
-				//stats_->count_get_uc_invalid_SAT_calls();
+				//max_interation--;
 				std::vector<int> inner_uc = get_solver_uc();
-				//sort(inner_uc.rbegin(),inner_uc.rend());
 				clear_assumption();
 				for(int i=0;i<inner_uc.size();i++)
 				{
@@ -243,7 +229,6 @@ namespace car
 						assumption_push(inner_uc[i]);   //update the assumption_ according to new reason
 					}
 				}
-				//if(assumption_.size() == assumption_size) break;
 			}
 		}
         std::vector<int> mus_reason;
@@ -252,25 +237,11 @@ namespace car
 		{
 			mus_reason.push_back(lit_id (assumption_[i]));
 		}
-		std::vector<int> temp = cube_difference(uc_contain_s,mus_reason);
-		mus_reason.insert(mus_reason.end(),temp.begin(),temp.end());
-		temp.clear();
         return mus_reason;  
-	}
-
-	std::vector<int> CARSolver::cube_difference (std::vector<int>& maincube,std::vector<int>& subcube){
-		//return elements in maincube but not in subcube
-		std::vector<int> res;
-		std::set<int> temp_set;
-		for(auto it = subcube.begin();it != subcube.end();++it)
-			temp_set.insert(*it);
-		for(auto it = maincube.begin();it != maincube.end();++it)
-			if(temp_set.find(*it) == temp_set.end()) res.push_back(*it);
-		return res;
 	}
 	//zhang xiaoyu code ends
 	//return the UC from SAT solver when it provides UNSAT
- 	std::vector<int> CARSolver::get_uc (std::vector<int>& uc_contain_s)
+ 	std::vector<int> CARSolver::get_uc ()
  	{
  		std::vector<int> reason;
 		//if (verbose_)
@@ -284,8 +255,7 @@ namespace car
     	}
 		//if (verbose_)
 			//cout << endl;
-    	return get_mus(reason,uc_contain_s);
-    	//return reason;
+    	return get_mus(reason);
   	}
 	
 	void CARSolver::add_clause (std::vector<int>& v)

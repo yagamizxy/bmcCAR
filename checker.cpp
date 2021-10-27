@@ -32,7 +32,8 @@ namespace car
     ///////////////////////////////////main functions//////////////////////////////////
     bool Checker::check (std::ofstream& out){
 	    for (int i = 0; i < model_->num_outputs (); i ++){
-	        bad_ = model_->output (i);
+	        if(ilock_)	bad_ = - model_->output (i);
+			else bad_ = model_->output (i);
 	        
 	        //for the particular case when bad_ is true or false
 	        if (bad_ == model_->true_id ()){
@@ -73,7 +74,8 @@ namespace car
     			print_evidence (out);
     		out << "." << endl;
 	        car_finalization ();
-	        return res;
+	        if (i == model_->num_outputs () - 1)
+	        	return res;
 	    }
 	}
 	
@@ -372,7 +374,7 @@ namespace car
 		
 	//////////////helper functions/////////////////////////////////////////////
 
-	Checker::Checker (Model* model, Statistics& stats, ofstream* dot, bool forward, bool evidence, bool partial, bool propagate, bool begin, bool end, bool inter, bool rotate, bool verbose, bool minimal_uc)
+	Checker::Checker (Model* model, Statistics& stats, ofstream* dot, bool forward, bool evidence, bool partial, bool propagate, bool begin, bool end, bool inter, bool rotate, bool verbose, bool minimal_uc, bool ilock)
 	{
 	    
 		model_ = model;
@@ -388,6 +390,7 @@ namespace car
 		forward_ = forward;
 		safe_reported_ = false;
 		minimal_uc_ = minimal_uc;
+		ilock_ = ilock;
 		evidence_ = evidence;
 		verbose_ = verbose;
 		minimal_update_level_ = F_.size ()-1;
@@ -793,32 +796,8 @@ namespace car
 	void Checker::update_F_sequence (const State* s, const int frame_level)
 	{	
 		bool constraint = false;
-		Cube cu_contain_s;
-		if(frame_level > 1){
-			//bool flag = 0;
-			Frame& pre_frame = F_[frame_level-1];
-			//try to find out cu in the formal frame such that cu contains state s 
-			for (int i = pre_frame.size()-1; i >= 0; --i){
-
-				if(imply(s->s(),pre_frame[i])){
-					//flag = 1;
-					cu_contain_s = pre_frame[i];
-					//car::print (cu_contain_s);
-					break;
-				}
-			}
-			//cout<<"cu_contain_s flag is: "<<flag<<endl;
-			//if(!flag) cout<<"the frame size: "<<pre_frame.size()<<endl;
-			//assert(flag);
+		Cube cu = solver_->get_conflict (forward_, minimal_uc_, constraint);
 		
-			if(forward_){
-				for(int i =0;i<cu_contain_s.size();++i)
-					cu_contain_s[i] = model_->prime (cu_contain_s[i]);
-			}
-
-		}
-		Cube cu = solver_->get_conflict (forward_, minimal_uc_, constraint,cu_contain_s);
-	
 		/*
 		Cube dead_uc;
 		if (is_dead (s, dead_uc)){
@@ -887,13 +866,14 @@ namespace car
 			}
 		}
 		
+		
 		push_to_frame (cu, frame_level);
 		
 		
-		// if (forward_){
-		// 	for (int i = frame_level-1; i >= 1; --i)
-		// 		push_to_frame (cu, i);
-		// }
+		if (forward_){
+			for (int i = frame_level-1; i >= 1; --i)
+				push_to_frame (cu, i);
+		}
 		
 		
 	}
@@ -1298,22 +1278,8 @@ namespace car
 	    	res = tmp;
 	    }
 	    else{
-			Cube cu_contain_s;
-			if(frame_level > 1){
-				Frame& pre_frame = F_[frame_level];
-				//try to find out cu in the formal frame such that cu contains state s 
-				for (int i = pre_frame.size()-1; i >= 0; --i){
-
-					if(imply(st,pre_frame[i])){
-						//flag = 1;
-						cu_contain_s = pre_frame[i];
-						//car::print (cu_contain_s);
-						break;
-					}
-				}
-				res = car::cube_intersect (cu_contain_s, st);
-	    	}
-		}
+	    	res = car::cube_intersect (cu, st);
+	    }
 	    //res.insert (res.begin (), tmp.begin (), tmp.end ());
 	}
 	

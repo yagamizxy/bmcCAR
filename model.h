@@ -56,7 +56,7 @@ public:
 	inline int size () {return cls_.size ();}
 	inline std::vector<int>& element (const int id) {return cls_[id];}
 	inline int output (const int id) {return outputs_[id];}
-	
+	inline std::vector<int>& get_prime_cls (const int id,const int num) {return prime_cls_[id][num];}
 	inline Cube& init () {return init_;}
 	
 	void shrink_to_previous_vars (Cube& cu, bool& constraint);
@@ -94,6 +94,7 @@ private:
 	                //(1) clauses for constraints, i.e. those before position outputs_start_;
 	                //(2) clauses for outputs, i.e. those before position latches_start_;
 	                //(3) clauses for latches, i.e. all 
+	std::vector<Clauses> prime_cls_;   //store the primed cls of unrolling transition
 	
 	int outputs_start_; //the index of cls_ to point the start position of outputs
 	int latches_start_; //the index of cls_ to point the start position of latches
@@ -172,6 +173,7 @@ private:
 	void insert_to_reverse_next_map (const int index, const int val);
 public:
 	bool propagate (const std::vector<int>& assump, std::vector<int>& res);
+
 	
 };
 
