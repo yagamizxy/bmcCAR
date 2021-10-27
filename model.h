@@ -173,7 +173,6 @@ private:
 	void insert_to_reverse_next_map (const int index, const int val);
 public:
 	bool propagate (const std::vector<int>& assump, std::vector<int>& res);
-
 	
 };
 

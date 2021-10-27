@@ -77,7 +77,6 @@ class MainSolver : public CARSolver
 		
 		//this version is used for bad check only
 		Cube get_conflict (const int bad);
-		//static Cube empty_cube_;
 		Cube get_conflict (const bool forward, const bool minimal, bool& constraint);
 		
 		void add_new_frame (const Frame& frame, const int frame_level, const bool forward);
@@ -99,8 +98,6 @@ class MainSolver : public CARSolver
 		
 		inline int init_flag () {return init_flag_;}
 		inline int dead_flag () {return dead_flag_;}
-
-		
 		
 	private:
 		//members
@@ -112,7 +109,6 @@ class MainSolver : public CARSolver
 		Model* model_;
 		
 		Statistics* stats_;
-
 		
 		//bool verbose_;
 		

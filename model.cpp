@@ -47,7 +47,7 @@ namespace car{
 		//preserve two more ids for TRUE (max_id_ - 1) and FALSE (max_id_)
 		max_id_ = 2*(aig->maxvar+1);
 		
-		
+
 		collect_trues (aig);
 		
 		set_constraints (aig);
@@ -165,7 +165,7 @@ namespace car{
 			assert (aa != NULL);
 			add_clauses_from_gate (aa);
 		}
-
+		
 		//create clauses for next map
 		for (auto it = next_map_.begin (); it != next_map_.end (); ++it){
 			//add clauses for prime (it->first) <-> it->second
@@ -177,6 +177,8 @@ namespace car{
 		cls_.push_back (clause (true_));
 		cls_.push_back (clause (prime (true_)));
 		
+		for(int i=0;i<constraints_.size();i++)
+			cls_.push_back(clause(constraints_[i]));
 	}
 	
 	
@@ -252,8 +254,8 @@ namespace car{
 		}
 			
 	}
-
-	void Model::add_prime_clauses_from_gate (const aiger_and* aa){
+	
+		void Model::add_prime_clauses_from_gate (const aiger_and* aa){
 		assert (aa != NULL);
 		assert (!is_true (aa->lhs) && !is_false (aa->lhs));
 		
@@ -284,7 +286,7 @@ namespace car{
 			cls_.push_back (clause (prime (-car_var (aa->lhs)), prime (car_var (aa->rhs1))));
 		}
 	}
-	
+
 	void Model::set_init (const aiger* aig)
 	{
 		for (int i = 0; i < aig->num_latches; i ++)
@@ -332,56 +334,7 @@ namespace car{
 		assert (abs(id) > max_id_/2);
 		return (id > 0 ? (id-max_id_/2) : (id+max_id_/2));
 	}
-
-	/*
-	int Model::prime (const int id)
-	{
-		nextMap::iterator it = next_map_.find (abs (id));
-		if (it == next_map_.end ()){
-		    //return 0; //not found
-		    cout << "cannot find prime for " << id << endl;
-		    exit (0);
-		}
-		return (id > 0 ? it->second : -(it->second));
-	}
 	
-	std::vector<int> Model::previous (const int id)
-	{
-	    vector<int> res;
-	    reverseNextMap::iterator it = reverse_next_map_.find (abs (id));
-		if (it == reverse_next_map_.end ())
-		    return res; //not found
-		res = it->second;
-		if (id < 0)
-		{
-		    for (int i = 0; i < res.size (); i ++)
-		        res[i] = -res[i];
-		}
-		return res;
-	}
-	
-	void Model::shrink_to_previous_vars (Cube& uc, bool& constraint)
-	{
-		Cube tmp;
-		constraint = true;
-		for (int i = 0; i < uc.size (); i ++)
-		{
-		    vector<int> ids = previous (abs (uc[i]));
-			if (ids.empty ())
-			{
-				constraint = false;
-			    continue;
-			}
-			else
-			{
-			    for (int j = 0; j < ids.size (); j ++)
-			        tmp.push_back ((uc[i] > 0) ? ids[j] : (-ids[j]));
-			}
-				
-		}
-		uc = tmp;
-	}
-	*/
 	void Model::shrink_to_previous_vars (Cube& uc, bool& constraint){
 		int id = max_id ()/2;
 		Cube tmp;

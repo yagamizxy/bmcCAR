@@ -41,7 +41,6 @@ namespace car
 		init_flag_ = m->max_id() + 1;
 		dead_flag_ = m->max_id () + 2;
 		max_flag_ = m->max_id() + 3;
-		//empty_cube_ = *new Cube;
 	    //constraints
 		for (int i = 0; i < m->outputs_start (); i ++)
 			add_clause (m->element (i));
@@ -90,7 +89,6 @@ namespace car
 	//this version is used for bad check only
 	Cube MainSolver::get_conflict (const int bad)
 	{
-		Cube empty_uc;
 		Cube conflict = get_uc ();
 		Cube res;
 		for (int i = 0; i < conflict.size (); i ++)
@@ -212,7 +210,6 @@ namespace car
 		}
 		else
 		{
-		
 		    Assignment tmp;
 		    tmp.resize (model_->num_latches (), 0);
 		    for (int i = model_->num_inputs ()+1; i <= model_->num_inputs () + model_->num_latches (); i ++)
