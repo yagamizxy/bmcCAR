@@ -321,20 +321,25 @@ namespace car{
 		}
 	}
 	
-	int Model::prime (const int id)
+	int Model::prime (const int id,int level)
 	{
-		if(!(id != 0 && abs(id) <= max_id_/2))
-			cout<<"id is "<<id<<endl;
-		assert (id != 0 && abs(id) <= max_id_/2);
+		//assert (id != 0 && abs(id) <= max_id_/2);
 		
-		return (id > 0 ? (id+max_id_/2) : (id-max_id_/2));
+		return (id > 0 ? (id + (max_id_/2)*level) : (id - (max_id_/2)*level));
 	}
 		
-	int Model::previous (const int id){
-		assert (abs(id) > max_id_/2);
-		return (id > 0 ? (id-max_id_/2) : (id+max_id_/2));
+	int Model::previous (const int id,int level){
+		assert (abs(id) > (max_id_/2)*level);
+		return (id > 0 ? (id - (max_id_/2)*level) : (id + (max_id_/2)*level));
 	}
 	
+	std::vector<int> Model::clause_prime(const int id,int level){
+		std::vector<int> res = cls_[id];
+		for(int i = 0;i<res.size();i++)
+			res[i] = prime(res[i],level);
+		return res;
+	}
+
 	void Model::shrink_to_previous_vars (Cube& uc, bool& constraint){
 		int id = max_id ()/2;
 		Cube tmp;

@@ -38,8 +38,8 @@ public:
 	Model (aiger*, const bool verbose = false);
 	~Model () {}
 	
-	int prime (const int);
-	int previous (const int id);
+	int prime (const int,int level = 1);
+	int previous (const int id,int level = 1);
 	//std::vector<int> previous (const int);
 	
 	bool state_var (const int id)  {return (id >= 1) && (id <= num_inputs_+num_latches_);}
@@ -56,9 +56,9 @@ public:
 	inline int size () {return cls_.size ();}
 	inline std::vector<int>& element (const int id) {return cls_[id];}
 	inline int output (const int id) {return outputs_[id];}
-	inline std::vector<int>& get_prime_cls (const int id,const int num) {return prime_cls_[id][num];}
+	//inline std::vector<int>& get_prime_cls (const int id,const int num) {return prime_cls_[id][num];}
 	inline Cube& init () {return init_;}
-	
+	std::vector<int> clause_prime(const int id,int level);
 	void shrink_to_previous_vars (Cube& cu, bool& constraint);
 	void shrink_to_latch_vars (Cube& cu, bool& constraint);
 	
@@ -94,7 +94,7 @@ private:
 	                //(1) clauses for constraints, i.e. those before position outputs_start_;
 	                //(2) clauses for outputs, i.e. those before position latches_start_;
 	                //(3) clauses for latches, i.e. all 
-	std::vector<Clauses> prime_cls_;   //store the primed cls of unrolling transition
+	//std::vector<Clauses> prime_cls_;   //store the primed cls of unrolling transition
 	
 	int outputs_start_; //the index of cls_ to point the start position of outputs
 	int latches_start_; //the index of cls_ to point the start position of latches

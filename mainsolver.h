@@ -49,7 +49,9 @@ class MainSolver : public CARSolver
 				assumption_push (*it);
 		}
 		
+		void unroll_to_level(const int level);
 		
+		inline void add_unroll_level(){current_unroll_level_++;}
 		inline bool solve_with_assumption (const Assignment& st, const int p)
 		{
 		    set_assumption (st, p);
@@ -110,6 +112,7 @@ class MainSolver : public CARSolver
 		
 		Statistics* stats_;
 		
+		int current_unroll_level_;
 		//bool verbose_;
 		
 		//functions

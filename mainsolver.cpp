@@ -23,6 +23,7 @@
 
 
 #include "mainsolver.h"
+#include "data_structure.h"
 #include "utility.h"
 
 #include <algorithm>
@@ -38,9 +39,10 @@ namespace car
 	    verbose_ = verbose;
 	    stats_ = stats;
 		model_ = m;
-		init_flag_ = m->max_id() + 1;
-		dead_flag_ = m->max_id () + 2;
-		max_flag_ = m->max_id() + 3;
+		current_unroll_level_ = 1; //default unrolling level is 1
+		init_flag_ = m->max_id()*6 + 1;
+		dead_flag_ = m->max_id ()*6 + 2;
+		max_flag_ = m->max_id()*6 + 3;
 	    //constraints
 		for (int i = 0; i < m->outputs_start (); i ++)
 			add_clause (m->element (i));
@@ -77,6 +79,26 @@ namespace car
 				assumption_push (id);
 		}
 			
+	}
+	void MainSolver::unroll_to_level(const int level){
+		for(int lev = current_unroll_level_+1; lev <= level; lev++){
+
+			for (int i = 0; i < model_->outputs_start (); i ++){
+				vector<int> tmp = model_->clause_prime(i,lev);
+				add_clause (tmp);
+			}
+				
+			//outputs
+			for (int i = model_->outputs_start (); i < model_->latches_start (); i ++){
+				vector<int> tmp = model_->clause_prime(i,lev);
+				add_clause (tmp);
+			}
+			//latches
+			for (int i = model_->latches_start (); i < model_->size (); i ++){
+				vector<int> tmp = model_->clause_prime(i,lev);
+				add_clause (tmp);
+			}
+		}
 	}
 	
 	Assignment MainSolver::get_state (const bool forward, const bool partial)
