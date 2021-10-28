@@ -254,7 +254,6 @@ namespace car
 			    car::print (new_state->s());
 			    */
 			    
-			    
 			    //////generate dot data
 			    if (dot_ != NULL)
 			        (*dot_) << "\n\t\t\t" << const_cast<State*> (s)->id () << " -- " << new_state->id ();
@@ -266,6 +265,26 @@ namespace car
 			    
 			    if (try_satisfy_by (new_level, new_state))
 				    return true;
+
+				//unroll up to 5 and see if this works
+				for(int unroll_lev = 2; unroll_lev <=5; unroll_lev++){
+					bool res = reachable_unroll_lev(const_cast<State*>(new_state)->s (),new_level,unroll_lev); //check if state can reach F in lev steps
+					if (res){
+						cout<<"unroll works "<<endl;
+						//get state reachable t from new_state in lev steps, and add to B,then continue unsafe check from t
+						// State* new_lev_state = get_new_state (new_lev_state);
+						// int new_lev_level = get_new_level (new_state, frame_level);
+						// update_B_sequence (new_lev_state);
+						// if (try_satisfy_by (new_lev_level, new_lev_state))
+				    	// 	return true;
+						//break;
+					}
+					else{
+						//update_F_sequence (new_state, new_level+lev); //add unrolling uc to F
+					}
+				}
+				
+
 				if (safe_reported ())
 				    return false;
 				    
@@ -704,6 +723,30 @@ namespace car
 		return res;
 	}
 	
+	bool Checker::reachable_unroll_lev(const Cube& new_state,const int new_level,int unroll_lev){
+		//unroll in solver
+		if(solver_->get_unroll_level() < unroll_lev) solver_->unroll_to_level(unroll_lev);
+		//get unroll_lev prime of state
+		Assignment st2 = new_state;
+		//model_->cube_prime(st2,unroll_lev);
+		
+		solver_->set_assumption (st2, new_level, forward_,unroll_lev);
+		stats_->count_main_solver_SAT_time_start ();
+		bool res = solver_->solve_with_assumption ();
+		stats_->count_main_solver_SAT_time_end ();
+		if (!res) {
+			Assignment st3; 
+			st3.reserve (model_->num_latches());
+			for (int i = st2.size ()-model_->num_latches(); i < st2.size (); ++ i)
+				st3.push_back (st2[i]);
+			if (new_level+1 < cubes_.size ()) 
+				cubes_[new_level+1] = st3;
+			else
+				cube_ = st3;
+		}
+		return res;
+	}
+
 	bool Checker::solve_for_recursive (Cube& s, int frame_level, Cube& tmp_block){
 		assert (frame_level != -1);
 		
@@ -797,17 +840,6 @@ namespace car
 	{	
 		bool constraint = false;
 		Cube cu = solver_->get_conflict (forward_, minimal_uc_, constraint);
-		
-		/*
-		Cube dead_uc;
-		if (is_dead (s, dead_uc)){
-			//cout << "dead: " << endl;
-			//car::print (dead_uc);
-			add_dead_to_solvers (dead_uc);
-			//if (car::imply (cu, dead_uc))
-				return;
-		}
-		*/
 		
 		
 		//foward cu MUST rule out those not in \@s

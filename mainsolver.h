@@ -41,7 +41,7 @@ class MainSolver : public CARSolver
 		~MainSolver (){}
 		
 		//public funcitons
-		void set_assumption (const Assignment&, const int frame_level, const bool forward);
+		void set_assumption (const Assignment&, const int frame_level, const bool forward,const int unroll_lev = 1);
 		void set_assumption (const Assignment&, const int);
 		void set_assumption (const Assignment& st){
 			assumption_.clear ();
@@ -52,6 +52,8 @@ class MainSolver : public CARSolver
 		void unroll_to_level(const int level);
 		
 		inline void add_unroll_level(){current_unroll_level_++;}
+		inline int get_unroll_level(){return current_unroll_level_;}
+
 		inline bool solve_with_assumption (const Assignment& st, const int p)
 		{
 		    set_assumption (st, p);

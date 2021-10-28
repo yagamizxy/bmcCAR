@@ -59,6 +59,7 @@ public:
 	//inline std::vector<int>& get_prime_cls (const int id,const int num) {return prime_cls_[id][num];}
 	inline Cube& init () {return init_;}
 	std::vector<int> clause_prime(const int id,int level);
+	void cube_prime(std::vector<int>& cube,int level);
 	void shrink_to_previous_vars (Cube& cu, bool& constraint);
 	void shrink_to_latch_vars (Cube& cu, bool& constraint);
 	

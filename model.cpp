@@ -333,11 +333,18 @@ namespace car{
 		return (id > 0 ? (id - (max_id_/2)*level) : (id + (max_id_/2)*level));
 	}
 	
+	//prime of cls_[id]
 	std::vector<int> Model::clause_prime(const int id,int level){
 		std::vector<int> res = cls_[id];
 		for(int i = 0;i<res.size();i++)
 			res[i] = prime(res[i],level);
 		return res;
+	}
+
+	//prime of a cube
+	void Model::cube_prime(std::vector<int>& cube,int level){
+		for(int i = 0;i<cube.size();i++)
+			cube[i] = prime(cube[i],level);
 	}
 
 	void Model::shrink_to_previous_vars (Cube& uc, bool& constraint){

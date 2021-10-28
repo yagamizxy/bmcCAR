@@ -40,9 +40,9 @@ namespace car
 	    stats_ = stats;
 		model_ = m;
 		current_unroll_level_ = 1; //default unrolling level is 1
-		init_flag_ = m->max_id()*6 + 1;
-		dead_flag_ = m->max_id ()*6 + 2;
-		max_flag_ = m->max_id()*6 + 3;
+		init_flag_ = m->max_id()*3 + 1;
+		dead_flag_ = m->max_id ()*3 + 2;
+		max_flag_ = m->max_id()*3 + 3;
 	    //constraints
 		for (int i = 0; i < m->outputs_start (); i ++)
 			add_clause (m->element (i));
@@ -65,7 +65,7 @@ namespace car
 		}		
 	}
 	
-	void MainSolver::set_assumption (const Assignment& a, const int frame_level, const bool forward)
+	void MainSolver::set_assumption (const Assignment& a, const int frame_level, const bool forward,const int unroll_lev)
 	{
 		assumption_.clear ();
 		if (frame_level > -1)
@@ -74,7 +74,7 @@ namespace car
 		{
 			int id = *it;
 			if (forward)
-				assumption_push (model_->prime (id));
+				assumption_push (model_->prime (id,unroll_lev));
 			else
 				assumption_push (id);
 		}
@@ -98,7 +98,9 @@ namespace car
 				vector<int> tmp = model_->clause_prime(i,lev);
 				add_clause (tmp);
 			}
+			add_unroll_level();
 		}
+		
 	}
 	
 	Assignment MainSolver::get_state (const bool forward, const bool partial)
