@@ -60,7 +60,7 @@ public:
 	inline Cube& init () {return init_;}
 	std::vector<int> clause_prime(const int id,int level);
 	void cube_prime(std::vector<int>& cube,int level);
-	void shrink_to_previous_vars (Cube& cu, bool& constraint);
+	void shrink_to_previous_vars (Cube& cu, bool& constraint,const int unroll_lev=1);
 	void shrink_to_latch_vars (Cube& cu, bool& constraint);
 	
 	inline int true_id () {return true_;}

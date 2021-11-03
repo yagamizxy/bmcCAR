@@ -33,7 +33,7 @@
  namespace car
  {
  
-    State::State (const State *s, const Assignment& inputs, const Assignment& latches, const bool forward, const bool last) 
+    State::State (const State *s, const Assignment& inputs, const Assignment& latches, const bool forward, const bool last,const int unroll_lev) 
  	{
  		if (forward)
  		{
@@ -58,7 +58,8 @@
  		if (s == NULL)
  		    dep_ = 0;
  		else
- 		    dep_ = s->dep_ + 1;
+ 		    //dep_ = s->dep_ + 1;
+			 dep_ = s->dep_ + unroll_lev;
 		work_count_ = 0;
 		dead_ = false;
 		added_to_dead_solver_ = false;

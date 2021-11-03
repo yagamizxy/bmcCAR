@@ -134,9 +134,9 @@ namespace car
 		void inv_solver_add_constraint_and (const int frame_level);
 		void inv_solver_release_constraint_and ();
 		bool solve_with (const Cube &cu, const int frame_level);
-		State* get_new_state (const State *s);
+		State* get_new_state (const State *s,const int unroll_lev=1);
 		void extend_F_sequence ();
-		void update_F_sequence (const State* s, const int frame_level);
+		void update_F_sequence (const State* s, const int frame_level,const int unroll_lev=1);
 		void update_frame_by_relative (const State* s, const int frame_level);
 		void update_B_sequence (State* s);
 		int get_new_level (const State *s, const int frame_level);

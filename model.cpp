@@ -347,12 +347,12 @@ namespace car{
 			cube[i] = prime(cube[i],level);
 	}
 
-	void Model::shrink_to_previous_vars (Cube& uc, bool& constraint){
+	void Model::shrink_to_previous_vars (Cube& uc, bool& constraint,const int unroll_lev){
 		int id = max_id ()/2;
 		Cube tmp;
 		for (auto it = uc.begin(); it != uc.end(); ++it){
 			if (id < abs(*it) && (abs(*it) <= max_id()))
-				tmp.push_back (previous (*it));
+				tmp.push_back (previous (*it,unroll_lev));
 		}
 		uc = tmp;
 		//for (int i = 0; i < uc.size (); i ++)

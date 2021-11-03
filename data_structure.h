@@ -43,7 +43,7 @@
  	public:
  	    State (const Assignment& latches) : s_ (latches), pre_ (NULL), next_ (NULL), dead_ (false), added_to_dead_solver_ (false) {}
 
- 		State (const State *s, const Assignment& inputs, const Assignment& latches, const bool forward, const bool last = false); 
+ 		State (const State *s, const Assignment& inputs, const Assignment& latches, const bool forward, const bool last = false,const int unroll_lev=1); 
  		
  		State (State *s): pre_ (s->pre_), next_(s->next_), s_(s->s_), inputs_(s->inputs_), last_inputs_(s->last_inputs_), 
  		init_ (s->init_), id_ (s->id_), dep_ (s->dep_), dead_ (false), added_to_dead_solver_ (false) {}

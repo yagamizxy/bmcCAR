@@ -115,7 +115,7 @@ void check_aiger (int argc, char** argv)
    bool minimal_uc = false;
    bool gv = false; //to print dot format for graphviz 
    bool ilock = false;
-   bool partial = true;
+   bool partial = false;
    bool propagate = true;
    bool begin = false;
    bool end = true;

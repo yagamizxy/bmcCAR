@@ -125,7 +125,7 @@ namespace car
 		return res;
 	}
 	
-	Cube MainSolver::get_conflict (const bool forward, const bool minimal, bool& constraint)
+	Cube MainSolver::get_conflict (const bool forward, const bool minimal, bool& constraint,const int unroll_lev)
 	{
 		Cube conflict = get_uc ();
 		
@@ -138,7 +138,7 @@ namespace car
 		
 			
 		if (forward)
-		    model_->shrink_to_previous_vars (conflict, constraint);
+		    model_->shrink_to_previous_vars (conflict, constraint,unroll_lev);
 		else
 		    model_ -> shrink_to_latch_vars (conflict, constraint);
 		

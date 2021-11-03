@@ -267,28 +267,34 @@ namespace car
 				    return true;
 
 				//unroll up to 5 and see if this works
-				for(int unroll_lev = 2; unroll_lev <=5; unroll_lev++){
-					bool res = reachable_unroll_lev(const_cast<State*>(new_state)->s (),new_level,unroll_lev); //check if state can reach F in lev steps
-					if (res){
-						cout<<"unroll works "<<endl;
-						//get state reachable t from new_state in lev steps, and add to B,then continue unsafe check from t
-						// State* new_lev_state = get_new_state (new_lev_state);
-						// int new_lev_level = get_new_level (new_state, frame_level);
-						// update_B_sequence (new_lev_state);
-						// if (try_satisfy_by (new_lev_level, new_lev_state))
-				    	// 	return true;
-						//break;
-					}
-					else{
-						//update_F_sequence (new_state, new_level+lev); //add unrolling uc to F
+				if (new_level>0){
+					for(int unroll_lev = 2; unroll_lev <=5; unroll_lev++){
+						//solver_->print_clauses ();
+						cout<<"try unroll "<<endl;
+						//bool res1 = reachable_unroll_lev(const_cast<State*>(new_state)->s (),new_level,1);
+						bool res = reachable_unroll_lev(const_cast<State*>(new_state)->s (),new_level,unroll_lev); //check if state can reach F in lev steps
+						//solver_->print_clauses ();
+						if (res){
+							cout<<"unroll works "<<endl;
+							//get state reachable t from new_state in lev steps, and add to B,then continue unsafe check from t
+							State* new_lev_state = get_new_state (new_state,unroll_lev);
+							int new_lev_level = new_level-1;
+							//int new_lev_level = get_new_level (new_lev_state, new_level);
+							update_B_sequence (new_lev_state);
+							if (try_satisfy_by (new_lev_level, new_lev_state))
+								return true;
+							break;
+						}
+						else{
+							update_F_sequence (new_state, new_level + unroll_lev,unroll_lev); //add unrolling uc to F
+						}
 					}
 				}
-				
 
 				if (safe_reported ())
 				    return false;
 				    
-				if (forward_ && !new_state->is_dead ())
+				if (false&forward_ && !new_state->is_dead ())
 					all_predeccessor_dead = false;
 					
 				if (frame_level < F_.size ())
@@ -304,7 +310,7 @@ namespace car
 		    }
 		}
 		
-		if (forward_ && all_predeccessor_dead){
+		if (false&forward_ && all_predeccessor_dead){
 			Cube dead_uc;
 			if (is_dead (s, dead_uc)){
 				//cout << "dead: " << endl;
@@ -754,14 +760,14 @@ namespace car
 				
 	}
 	
-	State* Checker::get_new_state (const State* s)
+	State* Checker::get_new_state (const State* s,const int unroll_lev)
 	{
 		Assignment st = solver_->get_state (forward_, partial_state_);
 		//st includes both input and latch parts
 		if (partial_state_)
 			get_partial (st, s);
 		std::pair<Assignment, Assignment> pa = state_pair (st);
-		State* res = new State (s, pa.first, pa.second, forward_);
+		State* res = new State (s, pa.first, pa.second, forward_,false,unroll_lev);
 		
 		return res;
 	}
@@ -836,10 +842,10 @@ namespace car
 	    B_[s->depth ()].push_back (s);
 	}
 	
-	void Checker::update_F_sequence (const State* s, const int frame_level)
+	void Checker::update_F_sequence (const State* s, const int frame_level,const int unroll_lev)
 	{	
 		bool constraint = false;
-		Cube cu = solver_->get_conflict (forward_, minimal_uc_, constraint);
+		Cube cu = solver_->get_conflict (forward_, minimal_uc_, constraint, unroll_lev);
 		
 		
 		//foward cu MUST rule out those not in \@s
