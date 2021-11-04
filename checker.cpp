@@ -268,25 +268,22 @@ namespace car
 
 				//unroll up to 5 and see if this works
 				if (new_level>0){
-					for(int unroll_lev = 2; unroll_lev <=5; unroll_lev++){
-						//solver_->print_clauses ();
-						cout<<"try unroll "<<endl;
-						//bool res1 = reachable_unroll_lev(const_cast<State*>(new_state)->s (),new_level,1);
+					for(int unroll_lev = 2; unroll_lev <=1; unroll_lev++){
+						cout<<"try unroll: "<<unroll_lev<<endl;
 						bool res = reachable_unroll_lev(const_cast<State*>(new_state)->s (),new_level,unroll_lev); //check if state can reach F in lev steps
-						//solver_->print_clauses ();
 						if (res){
-							cout<<"unroll works "<<endl;
+							cout<<"unroll works: "<<unroll_lev<<endl;
 							//get state reachable t from new_state in lev steps, and add to B,then continue unsafe check from t
 							State* new_lev_state = get_new_state (new_state,unroll_lev);
-							int new_lev_level = new_level-1;
-							//int new_lev_level = get_new_level (new_lev_state, new_level);
+							int new_lev_level = get_new_level (new_lev_state, new_level);
 							update_B_sequence (new_lev_state);
 							if (try_satisfy_by (new_lev_level, new_lev_state))
 								return true;
 							break;
 						}
 						else{
-							update_F_sequence (new_state, new_level + unroll_lev,unroll_lev); //add unrolling uc to F
+							if((new_level + unroll_lev) < F_.size())
+								update_F_sequence (new_state, new_level + unroll_lev,unroll_lev); //add unrolling uc to F
 						}
 					}
 				}
@@ -294,7 +291,7 @@ namespace car
 				if (safe_reported ())
 				    return false;
 				    
-				if (false&forward_ && !new_state->is_dead ())
+				if (forward_ && !new_state->is_dead ())
 					all_predeccessor_dead = false;
 					
 				if (frame_level < F_.size ())
@@ -310,7 +307,7 @@ namespace car
 		    }
 		}
 		
-		if (false&forward_ && all_predeccessor_dead){
+		if (forward_ && all_predeccessor_dead){
 			Cube dead_uc;
 			if (is_dead (s, dead_uc)){
 				//cout << "dead: " << endl;
@@ -764,7 +761,7 @@ namespace car
 	{
 		Assignment st = solver_->get_state (forward_, partial_state_);
 		//st includes both input and latch parts
-		if (partial_state_)
+		if (partial_state_ && unroll_lev==1)
 			get_partial (st, s);
 		std::pair<Assignment, Assignment> pa = state_pair (st);
 		State* res = new State (s, pa.first, pa.second, forward_,false,unroll_lev);

@@ -337,7 +337,7 @@ namespace car{
 	std::vector<int> Model::clause_prime(const int id,int level){
 		std::vector<int> res = cls_[id];
 		for(int i = 0;i<res.size();i++)
-			res[i] = prime(res[i],level);
+			res[i] = prime(res[i],level-1);
 		return res;
 	}
 
@@ -351,7 +351,7 @@ namespace car{
 		int id = max_id ()/2;
 		Cube tmp;
 		for (auto it = uc.begin(); it != uc.end(); ++it){
-			if (id < abs(*it) && (abs(*it) <= max_id()))
+			if (id < abs(*it) && (abs(*it) <= prime(max_id(),unroll_lev)))
 				tmp.push_back (previous (*it,unroll_lev));
 		}
 		uc = tmp;
