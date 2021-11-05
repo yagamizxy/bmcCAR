@@ -121,6 +121,7 @@ void check_aiger (int argc, char** argv)
    bool end = true;
    bool inter = true;
    bool rotate = false;
+   int unroll_max = 1;  //control unroll level 
    
    string input;
    string output_dir;
@@ -138,6 +139,14 @@ void check_aiger (int argc, char** argv)
    			evidence = true;
       else if (strcmp (argv[i], "-ilock") == 0)
    			ilock = true;
+      else if (strcmp (argv[i], "-2") == 0)
+   			unroll_max = 2;
+      else if (strcmp (argv[i], "-3") == 0)
+   			unroll_max = 3;
+      else if (strcmp (argv[i], "-4") == 0)
+   			unroll_max = 4;
+      else if (strcmp (argv[i], "-5") == 0)
+   			unroll_max = 5;
    		else if (strcmp (argv[i], "-h") == 0)
    			print_usage ();
    		else if (strcmp (argv[i], "-begin") == 0) {
@@ -229,7 +238,7 @@ void check_aiger (int argc, char** argv)
    //which is consistent with the HWMCC format
    assert (model->num_outputs () >= 1);
    
-   ch = new Checker (model, stats, dot_file, forward, evidence, partial, propagate, begin, end, inter, rotate, verbose, minimal_uc,ilock);
+   ch = new Checker (model, stats, dot_file, forward, evidence, partial, propagate, begin, end, inter, rotate, verbose, minimal_uc,ilock,unroll_max);
 
    aiger_reset(aig);
    

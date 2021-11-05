@@ -59,7 +59,7 @@ namespace car
 	class Checker 
 	{
 	public:
-		Checker (Model* model, Statistics& stats, std::ofstream* dot, bool forward = true, bool evidence = false, bool partial = false, bool propagate = false, bool begin = false, bool end = true, bool inter = true, bool rotate = false, bool verbose = false, bool minimal_uc = false,bool ilock = false);
+		Checker (Model* model, Statistics& stats, std::ofstream* dot, bool forward = true, bool evidence = false, bool partial = false, bool propagate = false, bool begin = false, bool end = true, bool inter = true, bool rotate = false, bool verbose = false, bool minimal_uc = false,bool ilock = false,int unroll_max = 1);
 		~Checker ();
 		
 		bool check (std::ofstream&);
@@ -80,7 +80,8 @@ namespace car
 		bool verbose_;
 		bool propagate_;
 		bool ilock_;
-		
+		int unroll_max_;
+		std::vector<std::pair<Cube, int>> unroll_pair; //store the unroll uc and uc framelevel
 		//new flags for reorder and state enumeration
 		bool begin_, end_;  // for state enumeration
 		bool inter_, rotate_; //for reorder
@@ -168,7 +169,7 @@ namespace car
 		bool propagate (Cube& cu, int n);
 		
 		void add_dead_to_inv_solver ();
-				
+		void push_unrollpair_to_frame();	
 		
 		//inline functions
 		inline bool is_initial (Cube& c){return init_->imply (c);}

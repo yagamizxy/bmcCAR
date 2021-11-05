@@ -117,6 +117,7 @@ namespace car
 				return false;
 			}
 			extend_F_sequence ();
+			push_unrollpair_to_frame();
 			
 			if (propagate_){
 				clear_frame ();
@@ -265,10 +266,11 @@ namespace car
 			    
 			    if (try_satisfy_by (new_level, new_state))
 				    return true;
-
+				
 				//unroll up to 5 and see if this works
 				if (new_level>0){
-					for(int unroll_lev = 2; unroll_lev <=1; unroll_lev++){
+					for(int unroll_lev = 2; unroll_lev <=unroll_max_; unroll_lev++){
+						
 						cout<<"try unroll: "<<unroll_lev<<endl;
 						bool res = reachable_unroll_lev(const_cast<State*>(new_state)->s (),new_level,unroll_lev); //check if state can reach F in lev steps
 						if (res){
@@ -282,8 +284,8 @@ namespace car
 							break;
 						}
 						else{
-							if((new_level + unroll_lev) < F_.size())
-								update_F_sequence (new_state, new_level + unroll_lev,unroll_lev); //add unrolling uc to F
+							//if((new_level + unroll_lev) < F_.size())
+							update_F_sequence (new_state, new_level + unroll_lev,unroll_lev); //add unrolling uc to F
 						}
 					}
 				}
@@ -396,7 +398,7 @@ namespace car
 		
 	//////////////helper functions/////////////////////////////////////////////
 
-	Checker::Checker (Model* model, Statistics& stats, ofstream* dot, bool forward, bool evidence, bool partial, bool propagate, bool begin, bool end, bool inter, bool rotate, bool verbose, bool minimal_uc, bool ilock)
+	Checker::Checker (Model* model, Statistics& stats, ofstream* dot, bool forward, bool evidence, bool partial, bool propagate, bool begin, bool end, bool inter, bool rotate, bool verbose, bool minimal_uc, bool ilock,int unroll_max)
 	{
 	    
 		model_ = model;
@@ -413,6 +415,7 @@ namespace car
 		safe_reported_ = false;
 		minimal_uc_ = minimal_uc;
 		ilock_ = ilock;
+		unroll_max_ = unroll_max;
 		evidence_ = evidence;
 		verbose_ = verbose;
 		minimal_update_level_ = F_.size ()-1;
@@ -477,13 +480,12 @@ namespace car
 	
 	void Checker::car_finalization ()
 	{
-	/*
-		for (int i = 0; i < F_.size(); ++i){
-			cout << "Frame " << i << endl;
-			for (int j = 0; j < F_[i].size(); ++j)
-				car::print (F_[i][j]);
-		}
-		*/
+		// for (int i = 0; i < F_.size(); ++i){
+		// 	cout << "Frame " << i << endl;
+		// 	for (int j = 0; j < F_[i].size(); ++j)
+		// 		car::print (F_[i][j]);
+		// }
+	
 		
 	    F_.clear ();
 	    destroy_states ();
@@ -901,8 +903,10 @@ namespace car
 			}
 		}
 		
-		
-		push_to_frame (cu, frame_level);
+		if (frame_level > F_.size())
+			unroll_pair.push_back(std::pair<Cube,int> (cu, frame_level));
+		else
+			push_to_frame (cu, frame_level);
 		
 		
 		if (forward_){
@@ -1192,6 +1196,7 @@ namespace car
 		} 
 		stats_->count_clause_contain_time_end ();
 		tmp_frame.push_back (cu);
+		
 		/*
 		//update comm
 		Cube& comm = (frame_level < int (comms_.size ())) ? comms_[frame_level] : comm_;
@@ -1406,5 +1411,14 @@ namespace car
 		else
 			last_->print_evidence (forward_, out);
 	}
-		
+
+	void Checker::push_unrollpair_to_frame(){
+		for (auto it = unroll_pair.begin();it != unroll_pair.end();++it){
+			if((*it).second < F_.size()){
+				push_to_frame((*it).first,(*it).second);
+				unroll_pair.erase(it);
+			} 
+		}
+	}
+
 }
