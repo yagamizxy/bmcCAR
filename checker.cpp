@@ -1415,6 +1415,7 @@ namespace car
 	void Checker::push_unrollpair_to_frame(){
 		for (auto it = unroll_pair.begin();it != unroll_pair.end();++it){
 			if((*it).second < F_.size()){
+				//cout<<"push success"<<endl;
 				push_to_frame((*it).first,(*it).second);
 				unroll_pair.erase(it);
 			} 
