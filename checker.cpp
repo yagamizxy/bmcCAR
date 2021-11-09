@@ -117,7 +117,7 @@ namespace car
 				return false;
 			}
 			extend_F_sequence ();
-			push_unrollpair_to_frame();
+			//push_unrollpair_to_frame();
 			
 			if (propagate_){
 				clear_frame ();
@@ -242,10 +242,11 @@ namespace car
 		}
 		else
 		{
-		 	  
-		    while (solve_with (const_cast<State*>(s)->s (), frame_level))
+		 	for(int unroll_lev = 1; unroll_lev <=unroll_max_; unroll_lev++){
+					
+		    while (reachable_unroll_lev (const_cast<State*>(s)->s (), frame_level,unroll_lev))
 		    {
-			    State* new_state = get_new_state (s);
+			    State* new_state = get_new_state (s,unroll_lev);
 			    assert (new_state != NULL);
 			    /*
 			    cout << "frame " << frame_level << ":" << endl;
@@ -266,29 +267,6 @@ namespace car
 			    
 			    if (try_satisfy_by (new_level, new_state))
 				    return true;
-				
-				//unroll up to 5 and see if this works
-				if (new_level>0){
-					for(int unroll_lev = 2; unroll_lev <=unroll_max_; unroll_lev++){
-						
-						cout<<"try unroll: "<<unroll_lev<<endl;
-						bool res = reachable_unroll_lev(const_cast<State*>(new_state)->s (),new_level,unroll_lev); //check if state can reach F in lev steps
-						if (res){
-							cout<<"unroll works: "<<unroll_lev<<endl;
-							//get state reachable t from new_state in lev steps, and add to B,then continue unsafe check from t
-							State* new_lev_state = get_new_state (new_state,unroll_lev);
-							int new_lev_level = get_new_level (new_lev_state, new_level);
-							update_B_sequence (new_lev_state);
-							if (try_satisfy_by (new_lev_level, new_lev_state))
-								return true;
-							break;
-						}
-						else{
-							//if((new_level + unroll_lev) < F_.size())
-							update_F_sequence (new_state, new_level + unroll_lev,unroll_lev); //add unrolling uc to F
-						}
-					}
-				}
 
 				if (safe_reported ())
 				    return false;
@@ -307,9 +285,11 @@ namespace car
 				    }
 				}
 		    }
-		}
-		
-		if (forward_ && all_predeccessor_dead){
+
+			update_F_sequence (s, frame_level + unroll_lev,unroll_lev);
+			}
+
+			if (forward_ && all_predeccessor_dead){
 			Cube dead_uc;
 			if (is_dead (s, dead_uc)){
 				//cout << "dead: " << endl;
@@ -319,13 +299,12 @@ namespace car
 				//if (car::imply (cu, dead_uc))
 				return false;
 			}
-		}
+			}
 
-		update_F_sequence (s, frame_level+1);
+		//update_F_sequence (s, frame_level+1);
 		if (safe_reported ())
 			return false;
-		
-		frame_level += 1;
+		frame_level += unroll_max_;
 		if (frame_level < int (F_.size ()))
 		{
 		   /*
@@ -340,6 +319,34 @@ namespace car
 		}
 		
 		return false;
+		}
+		
+		
+
+		//unroll up to 5 and see if this works
+			// if (frame_level>0){
+			// 	for(int unroll_lev = 2; unroll_lev <=unroll_max_; unroll_lev++){
+					
+			// 		cout<<"try unroll: "<<unroll_lev<<endl;
+			// 		bool res = reachable_unroll_lev(const_cast<State*>(s)->s (),frame_level,unroll_lev); //check if state can reach F in lev steps
+			// 		if (res){
+			// 			cout<<"unroll works: "<<unroll_lev<<endl;
+			// 			//get state reachable t from new_state in lev steps, and add to B,then continue unsafe check from t
+			// 			State* new_lev_state = get_new_state (s,unroll_lev);
+			// 			int new_lev_level = get_new_level (new_lev_state, frame_level);
+			// 			update_B_sequence (new_lev_state);
+			// 			if (try_satisfy_by (new_lev_level, new_lev_state))
+			// 				return true;
+			// 			break;
+			// 		}
+			// 		else{
+			// 			//if((new_level + unroll_lev) < F_.size())
+			// 			update_F_sequence (s, frame_level + unroll_lev,unroll_lev); //add unrolling uc to F
+			// 		}
+			// 	}
+			// }
+
+		
 	}
 	
 	/*************propagation****************/
@@ -352,34 +359,34 @@ namespace car
 	}
 	
 	bool Checker::propagate (int n){
-		assert (n >= 0 && n < F_.size());
-		Frame& frame = F_[n];
-		Frame& next_frame = (n+1 >= F_.size()) ? frame_ : F_[n+1];
+		// assert (n >= 0 && n < F_.size());
+		// Frame& frame = F_[n];
+		// Frame& next_frame = (n+1 >= F_.size()) ? frame_ : F_[n+1];
 		
-		bool flag = true;
-		for (int i = 0; i < frame.size (); ++i){
-			Cube& cu = frame[i];
+		// bool flag = true;
+		// for (int i = 0; i < frame.size (); ++i){
+		// 	Cube& cu = frame[i];
 			
 			
-			bool propagated = false;
-			for (int j = 0; j < next_frame.size(); ++j){
-				if (car::imply (cu, next_frame[j]) && car::imply (next_frame[j], cu)){
-					propagated = true;
-					break;
-				}
-			}
-			if (propagated) continue;
+		// 	bool propagated = false;
+		// 	for (int j = 0; j < next_frame.size(); ++j){
+		// 		if (car::imply (cu, next_frame[j]) && car::imply (next_frame[j], cu)){
+		// 			propagated = true;
+		// 			break;
+		// 		}
+		// 	}
+		// 	if (propagated) continue;
 			
 	
-		    if (propagate (cu, n)){
-		    	push_to_frame (cu, n+1);
-		    }
-		    else
-		    	flag = false;
-		}
+		//     if (propagate (cu, n)){
+		//     	push_to_frame (cu, n+1);
+		//     }
+		//     else
+		//     	flag = false;
+		// }
 		
-		if (flag)
-			return true;
+		// if (flag)
+		// 	return true;
 		return false;
 	}
 	
@@ -430,6 +437,7 @@ namespace car
 		end_ = end;
 		inter_ = inter;
 		rotate_ = rotate;
+		frame_.resize(unroll_max);
 	}
 	Checker::~Checker ()
 	{
@@ -825,10 +833,13 @@ namespace car
 	
 	void Checker::extend_F_sequence ()
 	{
-		F_.push_back (frame_);
+		for(int lev = 0;lev<unroll_max_;lev++){
+		F_.push_back (frame_[lev]);
+		solver_->add_new_frame (frame_[lev], F_.size()+lev-1, forward_);
+		}
 		cubes_.push_back (cube_);
 		comms_.push_back (comm_);
-		solver_->add_new_frame (frame_, F_.size()-1, forward_);
+		
 	}
 	
 	void Checker::update_B_sequence (State* s)
@@ -903,10 +914,10 @@ namespace car
 			}
 		}
 		
-		if (frame_level > F_.size())
-			unroll_pair.push_back(std::pair<Cube,int> (cu, frame_level));
-		else
-			push_to_frame (cu, frame_level);
+		// if (frame_level > F_.size())
+		// 	unroll_pair.push_back(std::pair<Cube,int> (cu, frame_level));
+		// else
+		push_to_frame (cu, frame_level, unroll_lev);
 		
 		
 		if (forward_){
@@ -1170,10 +1181,10 @@ namespace car
 	}
 
 	
-	void Checker::push_to_frame (Cube& cu, const int frame_level)
+	void Checker::push_to_frame (Cube& cu, const int frame_level,int unroll_lev)
 	{
 		
-		Frame& frame = (frame_level < int (F_.size ())) ? F_[frame_level] : frame_;
+		Frame& frame = (frame_level < int (F_.size ())) ? F_[frame_level] : frame_[unroll_lev-1];
 		
 				
 		//To add \@ cu to \@ frame, there must be
@@ -1247,7 +1258,7 @@ namespace car
 		//end of check
 		
 	    assert (frame_level >= 0);
-	    Frame &frame = (frame_level < F_.size ()) ? F_[frame_level] : frame_;
+	    Frame &frame = (frame_level < F_.size ()) ? F_[frame_level] : frame_[frame_level-F_.size()];
 	    if (!partial_state_){
 	    	//assume that st is a full state
 	    	assert (const_cast<State*>(st)->size () == model_->num_latches ());
@@ -1279,7 +1290,7 @@ namespace car
 	
 	void Checker::get_previous (const Assignment& st, const int frame_level, std::vector<int>& res) {
 	    if (frame_level == -1) return;
-	    Frame& frame = (frame_level < F_.size ()) ? F_[frame_level] : frame_;
+	    Frame& frame = (frame_level < F_.size ()) ? F_[frame_level] : frame_[frame_level-F_.size()];
 	    
 	    for (int i = frame.size ()-1; i >= 0; --i) {
 	        Cube& cu = frame[i];
@@ -1301,7 +1312,7 @@ namespace car
 	    
 	    //get_previous (st, frame_level, res);
 	    
-	    Frame& frame = (frame_level+1 < F_.size ()) ? F_[frame_level+1] : frame_;
+	    Frame& frame = (frame_level+1 < F_.size ()) ? F_[frame_level+1] : frame_[frame_level-F_.size()];
 	    if (frame.size () == 0)  
 	    	return;
 	    	
@@ -1412,14 +1423,14 @@ namespace car
 			last_->print_evidence (forward_, out);
 	}
 
-	void Checker::push_unrollpair_to_frame(){
-		for (auto it = unroll_pair.begin();it != unroll_pair.end();++it){
-			if((*it).second < F_.size()){
-				//cout<<"push success"<<endl;
-				push_to_frame((*it).first,(*it).second);
-				unroll_pair.erase(it);
-			} 
-		}
-	}
+	// void Checker::push_unrollpair_to_frame(){
+	// 	for (auto it = unroll_pair.begin();it != unroll_pair.end();++it){
+	// 		if((*it).second < F_.size()){
+	// 			//cout<<"push success"<<endl;
+	// 			push_to_frame((*it).first,(*it).second);
+	// 			unroll_pair.erase(it);
+	// 		} 
+	// 	}
+	// }
 
 }

@@ -81,7 +81,7 @@ namespace car
 		bool propagate_;
 		bool ilock_;
 		int unroll_max_;
-		std::vector<std::pair<Cube, int>> unroll_pair; //store the unroll uc and uc framelevel
+		//std::vector<std::pair<Cube, int>> unroll_pair; //store the unroll uc and uc framelevel
 		//new flags for reorder and state enumeration
 		bool begin_, end_;  // for state enumeration
 		bool inter_, rotate_; //for reorder
@@ -105,7 +105,8 @@ namespace car
 		InvSolver *inv_solver_;
 		Fsequence F_;
 		Bsequence B_;
-		Frame frame_;   //to store the frame willing to be added in F_ in one step
+		//Frame frame_;   //to store the frame willing to be added in F_ in one step
+		std::vector<Frame> frame_; //mutiply steps
 		
 	    
 	    void get_previous (const Assignment& st, const int frame_level, std::vector<int>& res);
@@ -141,7 +142,7 @@ namespace car
 		void update_frame_by_relative (const State* s, const int frame_level);
 		void update_B_sequence (State* s);
 		int get_new_level (const State *s, const int frame_level);
-		void push_to_frame (Cube& cu, const int frame_level);
+		void push_to_frame (Cube& cu, const int frame_level,int unroll_lev=1);
 		bool tried_before (const State* s, const int frame_level);
 		
 		
@@ -169,7 +170,7 @@ namespace car
 		bool propagate (Cube& cu, int n);
 		
 		void add_dead_to_inv_solver ();
-		void push_unrollpair_to_frame();	
+		//void push_unrollpair_to_frame();	
 		
 		//inline functions
 		inline bool is_initial (Cube& c){return init_->imply (c);}
@@ -192,8 +193,8 @@ namespace car
 	        assert (start_solver_ != NULL);
 	        start_solver_->reset ();
 	        if (propagate_){
-	        	for (int i = 0; i < frame_.size(); ++i)
-	        		start_solver_->add_clause_with_flag (frame_[i]);
+	        	for (int i = 0; i < frame_[0].size(); ++i)
+	        		start_solver_->add_clause_with_flag (frame_[0][i]);
 	        	
 	        }
 	    }
@@ -210,8 +211,8 @@ namespace car
 	    inline void reconstruct_start_solver () {
 	        delete start_solver_;
 	        start_solver_ = new StartSolver (model_, bad_, forward_, verbose_);
-	        for (int i = 0; i < frame_.size (); i ++) {
-	            start_solver_->add_clause_with_flag (frame_[i]);
+	        for (int i = 0; i < frame_[0].size (); i ++) {
+	            start_solver_->add_clause_with_flag (frame_[0][i]);
 	        }
 	        
 	    }
@@ -291,8 +292,8 @@ namespace car
 	        frame_.clear ();
 	        cube_.clear ();
 		comm_.clear ();
-	        for (int i = 0; i < frame_.size (); i ++)
-	        	start_solver_->add_clause_with_flag (frame_[i]);
+	        for (int i = 0; i < frame_[0].size (); i ++)
+	        	start_solver_->add_clause_with_flag (frame_[0][i]);
 	    }
 	    
 	    
