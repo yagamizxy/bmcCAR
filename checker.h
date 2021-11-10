@@ -166,6 +166,7 @@ namespace car
 		void inv_solver_release_constraint_and ();
 		bool solve_with (const Cube &cu, const int frame_level);
 		State* get_new_state (const State *s,const int unroll_lev=1);
+		std::vector<State*> get_all_states(Configuration& config);
 		void extend_F_sequence ();
 		void update_F_sequence (Configuration& config);
 		void update_frame_by_relative (const State* s, const int frame_level);

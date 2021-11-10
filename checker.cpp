@@ -230,7 +230,7 @@ namespace car
 			configurations_.pop_back();
 			
 			if(is_sat(config)){
-				std::vector<State*> states = get_all_states(); //states in order, the last is the new state not in config.framelevel
+				std::vector<State*> states = get_all_states(config); //states in order, the last is the new state not in config.framelevel
 				for(int i = 0;i < states.size();++i){
 					Configuration temp_c(states[i],config.get_frame_level()-1+i,1);
 					configurations_.push_back(temp_c);
@@ -649,12 +649,26 @@ namespace car
 	
 	State* Checker::get_new_state (const State* s,const int unroll_lev)
 	{
+		
 		Assignment st = solver_->get_state (forward_, partial_state_);
 		//st includes both input and latch parts
 		// if (partial_state_ && unroll_lev==1)
 		// 	get_partial (st, s);
 		std::pair<Assignment, Assignment> pa = state_pair (st);
 		State* res = new State (s, pa.first, pa.second, forward_,false,unroll_lev);
+		
+		return res;
+	}
+
+	std::vector<State*> Checker::get_all_states(Configuration& config){
+		int unroll_lev = config.get_unroll_level();
+		State* s = config.get_state();
+		Frame st_vec = solver_->get_state_vector (unroll_lev);
+		std::vector<State*> res;
+		for (auto it=st_vec.begin();it != st_vec.end();++it){
+			std::pair<Assignment, Assignment> pa = state_pair (*it);
+			res.push_back(new State (s, pa.first, pa.second, forward_,false,unroll_lev));
+		}
 		
 		return res;
 	}
@@ -1022,7 +1036,7 @@ namespace car
 	
 	void Checker::push_to_frame (Cube& cu, const int frame_level,int unroll_level)
 	{
-		
+		//to be done
 		Frame& frame = (frame_level < int (F_.size ())) ? F_[frame_level] : frame_[unroll_level-1];
 		
 				
@@ -1056,9 +1070,9 @@ namespace car
 			for(int i=1;i<=unroll_lev;++i)
 				solver_->add_clause_from_cube (cu, frame_level, forward_,unroll_level);
 		}
-			
-		else if (frame_level == int (F_.size ()))
-			start_solver_->add_clause_with_flag (cu);
+		//to be done
+		// else if (frame_level == int (F_.size ()))
+		// 	start_solver_->add_clause_with_flag (cu);
 	}
 	
 	
