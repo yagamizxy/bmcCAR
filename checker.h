@@ -55,7 +55,35 @@ namespace car
         //std::vector<int> counter_;
         Model* model_;
     };
-    
+    class Configuration{
+		private:
+			State* s_;
+			int frame_level_;
+			int unroll_level_;
+		public:
+			Configuration(State* s,int frame_level,int unroll_level):s_(s),frame_level_(frame_level),unroll_level_(unroll_level){}
+			~Configuration (){
+				delete s_;
+			}
+
+			inline int get_frame_level(){
+				return frame_level_;
+			}
+
+			inline int get_unroll_level(){
+				return unroll_level_;
+			}
+
+			inline State* get_state(){
+				return s_;
+			}
+
+			inline void set_unroll_level(int level){
+				unroll_level_ = level;
+			}
+	};
+
+
 	class Checker 
 	{
 	public:
@@ -72,6 +100,7 @@ namespace car
 		    std::cout << std::endl;
 		}
 	protected:
+		std::vector<Configuration> configurations_;
 		//flags 
 		bool forward_;
 		bool partial_state_;
@@ -248,7 +277,7 @@ namespace car
 	        //if (reconstruct_solver_required ())
 	            //reconstruct_solver ();
 	        Assignment st2 = st;
-	        add_intersection_last_uc_in_frame_level_plus_one (st2, -1);
+	        //add_intersection_last_uc_in_frame_level_plus_one (st2, -1);
 	        stats_->count_main_solver_SAT_time_start ();
 	        bool res = solver_->solve_with_assumption (st2, p);
 	        stats_->count_main_solver_SAT_time_end ();

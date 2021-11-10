@@ -82,7 +82,7 @@ namespace car
 	bool Checker::car_check (){
 		if (verbose_)
 			cout << "start check ..." << endl;
-		if (immediate_satisfiable ()){
+		if (immediate_satisfiable ()){  //0 step
 			if (verbose_)
 				cout << "return SAT from immediate_satisfiable" << endl;
 			return true;
@@ -90,9 +90,9 @@ namespace car
 
 		initialize_sequences ();
 			
-		int frame_level = 0;
+		int loop_index = 1;
 		while (true){
-		    cout << "Frame " << frame_level << endl;
+		    cout << "Frame " << loop_index << endl;
 		    //print the number of clauses in each frame
 		    for (int i = 0; i < F_.size (); i ++) {
 		    	cout << F_[i].size () << " ";
@@ -101,11 +101,11 @@ namespace car
 		    //end of print
 		    
 		    //handle the special start states
-			reset_start_solver ();
-			if (!propagate_)
-		    	clear_frame ();
+			//reset_start_solver (); //initial state
+			// if (!propagate_)
+		    // 	clear_frame ();
 			minimal_update_level_ = F_.size () - 1;
-			if (try_satisfy (frame_level)){
+			if (try_satisfy (loop_index)){
 				if (verbose_)
 					cout << "return SAT from try_satisfy at frame level " << frame_level << endl;
 				return true;
@@ -116,18 +116,18 @@ namespace car
 					cout << "return UNSAT from safe reported" << endl;
 				return false;
 			}
-			extend_F_sequence ();
+			//extend_F_sequence ();
 			//push_unrollpair_to_frame();
 			
-			if (propagate_){
-				clear_frame ();
-				if (propagate ())
-					return false;
-			}
+			// if (propagate_){
+			// 	clear_frame ();
+			// 	if (propagate ())
+			// 		return false;
+			// }
 			
-			frame_level ++;
 			
-			if (invariant_found (frame_level+1)){
+			
+			if (invariant_found ()){  //use F size
 				if (verbose_){
 					cout << "return UNSAT from invariant found at frame " << F_.size ()-1 << endl;
 					print ();	
@@ -135,6 +135,7 @@ namespace car
 				return false;
 			}
 			
+			loop_index ++;
 			
 		}
 		if (verbose_)
@@ -142,36 +143,36 @@ namespace car
 		return false;
 	}
 	
-	bool Checker::try_satisfy (const int frame_level)
+	bool Checker::try_satisfy (const int loop_index)
 	{
 		
-		int res = do_search (frame_level);
+		int res = do_search (loop_index);  //B seq
 		if (res == 1)
 		    return true;
 		else if (res == 0)
 		    return false;
 		
 		//for forward CAR, the initial states are set of cubes
-		State *s = enumerate_start_state ();
-		while (s != NULL)
-		{
+		//State *s = enumerate_start_state ();
+		// while (s != NULL)
+		// {
 		
-		    if (!forward_) //for dot drawing
-			    s->set_initial (true);
+		//     if (!forward_) //for dot drawing
+		// 	    s->set_initial (true);
 			
-			//////generate dot data
-			if (dot_ != NULL)
-			    (*dot_) << "\n\t\t\t" << s->id () << " [shape = circle, color = red, label = \"Init\", size = 0.1];";
-			//////generate dot data
+		// 	//////generate dot data
+		// 	if (dot_ != NULL)
+		// 	    (*dot_) << "\n\t\t\t" << s->id () << " [shape = circle, color = red, label = \"Init\", size = 0.1];";
+		// 	//////generate dot data
 			
-			s->set_depth (0);
-		    update_B_sequence (s);
-			if (try_satisfy_by (frame_level, s))
-			    return true;
-			if (safe_reported ())
-				return false;
-		    s = enumerate_start_state ();
-		}
+		// 	s->set_depth (0);
+		//     update_B_sequence (s);
+		// 	if (try_satisfy_by (frame_level, s))
+		// 	    return true;
+		// 	if (safe_reported ())
+		// 		return false;
+		//     s = enumerate_start_state ();
+		// }
 	
 		return false;
 	}
@@ -184,19 +185,8 @@ namespace car
 	*       0: The safe result is reported
 	*       -1: else
 	*/
-	int Checker::do_search (const int frame_level) {	
-		//erase dead states
-		for (int i = B_.size()-1; i >= 0; --i){
-			for (int j = 0; j < B_[i].size(); ++j){
-				if (B_[i][j]->is_dead()){
-					State* s = B_[i][j];
-					B_[i].erase (B_[i].begin()+j);
-					delete s;
-					j --;
-				}
-			}
-		}
-		//end of erase
+	int Checker::do_search (const int loop_index) {	
+		
 		
 		if (begin_) {
 			vector<State*> states;
@@ -205,7 +195,7 @@ namespace car
 					states.push_back (B_[i][j]);
 			}
 			for (int i = 0; i < states.size (); ++ i) {
-				if (try_satisfy_by (frame_level, states[i]))
+				if (try_satisfy_by (loop_index, states[i]))
 			    	return 1;
 				if (safe_reported ())
 					return 0;
@@ -215,7 +205,7 @@ namespace car
 		if (end_) {
 	    	for (int i = B_.size () - 1; i >= 0; -- i) {
 	        	for (int j = 0; j < B_[i].size (); ++ j) {
-			    	if (try_satisfy_by (frame_level, B_[i][j]))
+			    	if (try_satisfy_by (loop_index, B_[i][j]))
 			        	return 1;
 					if (safe_reported ())
 				    	return 0;
@@ -226,126 +216,39 @@ namespace car
 		return -1;
 	}
 	
-	bool Checker::try_satisfy_by (int frame_level, State* s)
+	bool Checker::try_satisfy_by (int loop_index, State* s)
 	{
-		if (tried_before (s, frame_level+1))
+		if (tried_before (s, loop_index+1))
 			return false;
 		
-		//if (frame_level < minimal_update_level_)
-			//minimal_update_level_ = frame_level;
-		
-		bool all_predeccessor_dead = true; 
-		if (frame_level == -1)
+		Configuration c(s,(loop_index-1)*unroll_max_,1);
+		assert(configurations_.empty());
+		configurations_.push_back(c);
+		while(!configurations_.empty()) //stack non empty
 		{
-		    if (immediate_satisfiable (s))
-		        return true;
-		}
-		else
-		{
-		 	for(int unroll_lev = 1; unroll_lev <=unroll_max_; unroll_lev++){
-					
-		    while (reachable_unroll_lev (const_cast<State*>(s)->s (), frame_level,unroll_lev))
-		    {
-			    State* new_state = get_new_state (s,unroll_lev);
-			    assert (new_state != NULL);
-			    /*
-			    cout << "frame " << frame_level << ":" << endl;
-			    cout << "s: " << endl;
-			    car::print (s->s());
-			    cout << "new state:" << endl;
-			    car::print (new_state->s());
-			    */
-			    
-			    //////generate dot data
-			    if (dot_ != NULL)
-			        (*dot_) << "\n\t\t\t" << const_cast<State*> (s)->id () << " -- " << new_state->id ();
-			    //////generate dot data
-			    
-			    int new_level = get_new_level (new_state, frame_level);
-
-			    update_B_sequence (new_state);
-			    
-			    if (try_satisfy_by (new_level, new_state))
-				    return true;
-
-				if (safe_reported ())
-				    return false;
-				    
-				if (forward_ && !new_state->is_dead ())
-					all_predeccessor_dead = false;
-					
-				if (frame_level < F_.size ())
-				{
-				    
-				    while (tried_before (s, frame_level+1))
-				    {
-				        frame_level = frame_level + 1;
-					    if (frame_level >= F_.size ())
-						    return false;	
-				    }
+			Configuration& config = configurations_.back();
+			configurations_.pop_back();
+			
+			if(sat(config)){
+				std::vector<State*> states = get_all_states(); //states in order, the last is the new state not in config.framelevel
+				for(int i = 0;i < states.size();++i){
+					Configuration temp_c(states[i],config.get_frame_level()-1+i,1);
+					configurations_.push_back(temp_c);
 				}
-		    }
-
-			update_F_sequence (s, frame_level + unroll_lev,unroll_lev);
+				if(configurations_.back().get_frame_level() == -1) return true;
 			}
-
-			if (forward_ && all_predeccessor_dead){
-			Cube dead_uc;
-			if (is_dead (s, dead_uc)){
-				//cout << "dead: " << endl;
-				//car::print (dead_uc);
-				s->mark_dead ();
-				add_dead_to_solvers (dead_uc);
-				//if (car::imply (cu, dead_uc))
-				return false;
-			}
-			}
-
-		//update_F_sequence (s, frame_level+1);
-		if (safe_reported ())
-			return false;
-		frame_level += unroll_max_;
-		if (frame_level < int (F_.size ()))
-		{
-		   /*
-		    if (s->work_count () >= MAX_TRY) {
-		        s->set_work_level (frame_level);
-		        states_.push_back (s);
-		        return false;
-		    }
-		    s->work_count_inc ();
-		   */
-		    return try_satisfy_by (frame_level, s);
-		}
-		
-		return false;
-		}
-		
-		
-
-		//unroll up to 5 and see if this works
-			// if (frame_level>0){
-			// 	for(int unroll_lev = 2; unroll_lev <=unroll_max_; unroll_lev++){
+			else{
+				update_F_sequence(config); 
+				if (safe_reported()) return false;
+				int unroll_level = config.get_unroll_level();
+				if(unroll_level < unroll_max_){
+					config.set_unroll_level(unroll_level+1);
+					configurations_.push_back(config);
+				}
 					
-			// 		cout<<"try unroll: "<<unroll_lev<<endl;
-			// 		bool res = reachable_unroll_lev(const_cast<State*>(s)->s (),frame_level,unroll_lev); //check if state can reach F in lev steps
-			// 		if (res){
-			// 			cout<<"unroll works: "<<unroll_lev<<endl;
-			// 			//get state reachable t from new_state in lev steps, and add to B,then continue unsafe check from t
-			// 			State* new_lev_state = get_new_state (s,unroll_lev);
-			// 			int new_lev_level = get_new_level (new_lev_state, frame_level);
-			// 			update_B_sequence (new_lev_state);
-			// 			if (try_satisfy_by (new_lev_level, new_lev_state))
-			// 				return true;
-			// 			break;
-			// 		}
-			// 		else{
-			// 			//if((new_level + unroll_lev) < F_.size())
-			// 			update_F_sequence (s, frame_level + unroll_lev,unroll_lev); //add unrolling uc to F
-			// 		}
-			// 	}
-			// }
-
+			}
+		}
+		return false;
 		
 	}
 	
@@ -536,32 +439,17 @@ namespace car
 	
 	void Checker::initialize_sequences ()
 	{
+		//F inital
 		Frame frame;
-	    if (forward_)
-		{
-		    for (int i = 0; i < init_->size (); i ++)
-		    {
-		        Cube cu;
-		        cu.push_back (-init_->element (i));
-		        frame.push_back (cu);
-		    }
-		}
-		else
-		{
-			bool con;
-		    Cube cu = solver_->get_conflict (bad_);
-	        if (cu.empty ())
-	        {
-	             report_safe ();
-	             return;
-	        }
-	        frame.push_back (cu);
-		comms_.push_back (cu);
-		}
-		F_.push_back (frame);
-		Cube& cu = init_->s();
-		cubes_.push_back (cu);
-		solver_->add_new_frame (frame, F_.size()-1, forward_);
+		Cube temp;
+		temp.push_back(bad_);
+	    frame.push_back(temp);
+		F_.push_back(frame);
+
+		//B initial
+		std::vector<State*> v;
+		v.push_back(init_);
+		B_.push_back(v);
 	}
 	
 		
@@ -771,8 +659,8 @@ namespace car
 	{
 		Assignment st = solver_->get_state (forward_, partial_state_);
 		//st includes both input and latch parts
-		if (partial_state_ && unroll_lev==1)
-			get_partial (st, s);
+		// if (partial_state_ && unroll_lev==1)
+		// 	get_partial (st, s);
 		std::pair<Assignment, Assignment> pa = state_pair (st);
 		State* res = new State (s, pa.first, pa.second, forward_,false,unroll_lev);
 		
