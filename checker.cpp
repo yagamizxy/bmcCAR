@@ -229,7 +229,7 @@ namespace car
 			Configuration& config = configurations_.back();
 			configurations_.pop_back();
 			
-			if(sat(config)){
+			if(is_sat(config)){
 				std::vector<State*> states = get_all_states(); //states in order, the last is the new state not in config.framelevel
 				for(int i = 0;i < states.size();++i){
 					Configuration temp_c(states[i],config.get_frame_level()-1+i,1);
@@ -624,27 +624,19 @@ namespace car
 		return res;
 	}
 	
-	bool Checker::reachable_unroll_lev(const Cube& new_state,const int new_level,int unroll_lev){
+	bool Checker::is_sat(Configuration& config){
 		//unroll in solver
+		int unroll_lev = config.get_unroll_level();
+		int new_level = config.get_frame_level();
+		Assignment st2 = config.get_state()->s();
+		// unroll in solver
 		if(solver_->get_unroll_level() < unroll_lev) solver_->unroll_to_level(unroll_lev);
 		//get unroll_lev prime of state
-		Assignment st2 = new_state;
-		//model_->cube_prime(st2,unroll_lev);
 		
 		solver_->set_assumption (st2, new_level, forward_,unroll_lev);
 		stats_->count_main_solver_SAT_time_start ();
 		bool res = solver_->solve_with_assumption ();
 		stats_->count_main_solver_SAT_time_end ();
-		if (!res) {
-			Assignment st3; 
-			st3.reserve (model_->num_latches());
-			for (int i = st2.size ()-model_->num_latches(); i < st2.size (); ++ i)
-				st3.push_back (st2[i]);
-			if (new_level+1 < cubes_.size ()) 
-				cubes_[new_level+1] = st3;
-			else
-				cube_ = st3;
-		}
 		return res;
 	}
 
@@ -740,67 +732,26 @@ namespace car
 	    B_[s->depth ()].push_back (s);
 	}
 	
-	void Checker::update_F_sequence (const State* s, const int frame_level,const int unroll_lev)
+	void Checker::update_F_sequence (Configuration& config)
 	{	
+		int unroll_lev = config.get_unroll_level();
+		int frame_level = config.get_frame_level();
+		
 		bool constraint = false;
 		Cube cu = solver_->get_conflict (forward_, minimal_uc_, constraint, unroll_lev);
 		
-		
-		//foward cu MUST rule out those not in \@s
-		if (forward_){
-			Cube tmp;
-			Cube &st = s->s();
-			if (!partial_state_){
-				for(auto it = cu.begin(); it != cu.end(); ++it){
-					int latch_start = model_->num_inputs()+1;
-					if (st[abs(*it)-latch_start] == *it)
-						tmp.push_back (*it);
-				}
-			}
-			else{
-				hash_set<int> tmp_set;
-				for (auto it = st.begin (); it != st.end(); ++it)
-					tmp_set.insert (*it);
-				for (auto it = cu.begin(); it != cu.end(); ++it){
-					if (tmp_set.find (*it) != tmp_set.end())
-						tmp.push_back (*it);
-				}
-			}
-			cu = tmp;
-		}
-		
-		//assert (!cu.empty());
+	
 		
 		if(cu.empty()){
 			report_safe ();
 		}
 		
-		/*
-		if (frame_level <= F_.size()){
-			Cube next_cu;
-			cu = recursive_block (s, frame_level, cu, next_cu);
-		}
-		*/
-		
-		//pay attention to the size of cu!
+	
 		if (safe_reported ())
 		{
 			return;
 		}
 		
-		
-		if (forward_){
-			if (is_initial (cu)){
-				auto it = s->s().begin();
-				while ((*it) < 0) ++it;
-				assert (it != s->s().end());
-				int i = 0;
-				for (; i < cu.size(); ++i)
-					if (abs(cu[i]) > abs(*it))
-						break;
-				cu.insert (cu.begin()+i, *it);
-			}
-		}
 		
 		// if (frame_level > F_.size())
 		// 	unroll_pair.push_back(std::pair<Cube,int> (cu, frame_level));
@@ -1069,10 +1020,10 @@ namespace car
 	}
 
 	
-	void Checker::push_to_frame (Cube& cu, const int frame_level,int unroll_lev)
+	void Checker::push_to_frame (Cube& cu, const int frame_level,int unroll_level)
 	{
 		
-		Frame& frame = (frame_level < int (F_.size ())) ? F_[frame_level] : frame_[unroll_lev-1];
+		Frame& frame = (frame_level < int (F_.size ())) ? F_[frame_level] : frame_[unroll_level-1];
 		
 				
 		//To add \@ cu to \@ frame, there must be
@@ -1096,22 +1047,16 @@ namespace car
 		stats_->count_clause_contain_time_end ();
 		tmp_frame.push_back (cu);
 		
-		/*
-		//update comm
-		Cube& comm = (frame_level < int (comms_.size ())) ? comms_[frame_level] : comm_;
-		if (comm.empty ())
-			comm = cu;
-		else {
-		        comm = vec_intersect (cu, comm);
-		}
-		*/
 		frame = tmp_frame;
 		
 		if (frame_level-1 < minimal_update_level_)
 			minimal_update_level_ = frame_level;
 		
-		if (frame_level < int (F_.size ()))
-			solver_->add_clause_from_cube (cu, frame_level, forward_);
+		if (frame_level < int (F_.size ())){
+			for(int i=1;i<=unroll_lev;++i)
+				solver_->add_clause_from_cube (cu, frame_level, forward_,unroll_level);
+		}
+			
 		else if (frame_level == int (F_.size ()))
 			start_solver_->add_clause_with_flag (cu);
 	}

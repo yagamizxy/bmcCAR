@@ -106,8 +106,9 @@ class MainSolver : public CARSolver
 	private:
 		//members
 		int max_flag_;
-		std::vector<int> frame_flags_;
-		
+		//std::vector<int> frame_flags_;
+		std::vector<Cube> frame_flags_;
+
 		int init_flag_, dead_flag_;
 		
 		Model* model_;
@@ -115,21 +116,25 @@ class MainSolver : public CARSolver
 		Statistics* stats_;
 		
 		int current_unroll_level_;
+		int max_unroll_level_;
 		//bool verbose_;
 		
 		//functions
 		
 		
 		
-		inline int flag_of (const unsigned frame_level) 
+		inline int flag_of (const unsigned frame_level,const int unroll_level) 
 		{
 		    assert (frame_level >= 0);
 			while (frame_level >= frame_flags_.size ())
 			{
-				frame_flags_.push_back (max_flag_++);
+				Cube tmp;
+				for(int i=0;i<max_unroll_level_;++i)
+					tmp.push_back(max_flag_++);
+				frame_flags_.push_back (tmp);
 			}
 	        
-			return frame_flags_[frame_level];
+			return frame_flags_[frame_level][unroll_level-1];
 		}
 		void shrink_model (Assignment& model, const bool forward, const bool partial);
 		void try_reduce (Cube& cu);

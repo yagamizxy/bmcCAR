@@ -167,7 +167,7 @@ namespace car
 		bool solve_with (const Cube &cu, const int frame_level);
 		State* get_new_state (const State *s,const int unroll_lev=1);
 		void extend_F_sequence ();
-		void update_F_sequence (const State* s, const int frame_level,const int unroll_lev=1);
+		void update_F_sequence (Configuration& config);
 		void update_frame_by_relative (const State* s, const int frame_level);
 		void update_B_sequence (State* s);
 		int get_new_level (const State *s, const int frame_level);
@@ -187,7 +187,7 @@ namespace car
 		void get_partial (Assignment& st, const State* s=NULL);
 		void add_dead_to_solvers (Cube& dead_uc);
 		bool is_dead (const State* s, Cube& dead_uc);
-		bool reachable_unroll_lev(const Cube& new_state,const int new_level,int unroll_lev);
+		bool is_sat(Configuration& config);
 
 		bool solve_for_recursive (Cube& s, int frame_level, Cube& tmp_block);
 		Cube recursive_block (State* s, int frame_level, Cube cu, Cube& next_cu);
