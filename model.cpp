@@ -326,11 +326,12 @@ namespace car{
 	{
 		//assert (id != 0 && abs(id) <= max_id_/2);
 		
-		return (id > 0 ? (id + (max_id_/2)*level) : (id - (max_id_/2)*level));
+		return (id >= 0 ? (id + (max_id_/2)*level) : (id - (max_id_/2)*level));
 	}
 		
 	int Model::previous (const int id,int level){
-		assert (abs(id) > (max_id_/2)*level);
+		assert (abs(id) >= (max_id_/2)*level);
+		
 		return (id > 0 ? (id - (max_id_/2)*level) : (id + (max_id_/2)*level));
 	}
 	

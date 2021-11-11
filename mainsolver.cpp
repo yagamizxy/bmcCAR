@@ -53,6 +53,7 @@ namespace car
 		//latches
 		for (int i = m->latches_start (); i < m->size (); i ++)
 		    add_clause (m->element (i));
+		unroll_to_level(max_unroll_level_);
 	}
 	
 	void MainSolver::set_assumption (const Assignment& st, const int id)
@@ -111,10 +112,10 @@ namespace car
 		return model;
 	}
 	
-	Frame MainSolver::get_state_vector (int unroll_level)
+	std::vector<Cube> MainSolver::get_state_vector (int unroll_level)
 	{
 		Assignment model = get_model ();
-		Frame res = shrink_model_vector (model,unroll_level);
+		std::vector<Cube> res = shrink_model_vector (model,unroll_level);
 		return res;
 	}
 
@@ -171,46 +172,9 @@ namespace car
 		cl.push_back (-flag);
 		for (int i = 0; i < cu.size (); i ++)
 		{
-			if (!forward)
-				cl.push_back (-model_->prime (cu[i],unroll_level));
-			else
-				cl.push_back (-cu[i]);
+			cl.push_back (-model_->prime (cu[i],unroll_level));
 		}
 		add_clause (cl);
-	}
-	
-	bool MainSolver::solve_with_assumption_for_temporary (Cube& s, int frame_level, bool forward, Cube& tmp_block){
-		//add temporary clause
-		int flag = max_flag_++;
-		vector<int> cl;
-		cl.push_back (-flag);
-		for (int i = 0; i < tmp_block.size (); ++i)
-		{
-			if (!forward)
-				cl.push_back (-model_->prime (tmp_block[i]));
-			else
-				cl.push_back (-tmp_block[i]);
-		}
-		add_clause (cl);
-		
-		//add assumptions
-		assumption_.clear ();
-		
-		for (int i = 0; i < s.size(); ++i){
-			if (forward)
-				assumption_push (model_->prime (s[i]));
-			else
-				assumption_push (s[i]);
-		}
-		
-		assumption_push (flag);
-		assumption_push (flag_of (frame_level));
-			
-		bool res = solve_with_assumption ();
-		add_clause (-flag);
-		
-		return res;
-		
 	}
 	
 	void MainSolver::shrink_model (Assignment& model, const bool forward, const bool partial)
@@ -269,10 +233,10 @@ namespace car
 		model = res;
 	}
 	
-	Frame MainSolver::shrink_model_vector (Assignment& model,int unroll_level)
+	std::vector<Cube> MainSolver::shrink_model_vector (Assignment& model,int unroll_level)
 	{
 		Frame res;
-		for(int lev = 2; lev <= unroll_level; ++lev){
+		for(int lev = 1; lev <= unroll_level; ++lev){
 			Cube element;
 			for (int i = model_->prime(0,lev); i < model_->prime(model_->num_inputs (),lev); i ++)
 			{
@@ -280,8 +244,12 @@ namespace car
 				{//the value is DON'T CARE, so we just set to 0
 					element.push_back (0);
 				}
-				else
+				else{
+					// if(model[i] < 0) 
+					// 	cout<<model[i]<<endl;
 					element.push_back (model_->previous(model[i],lev));
+				}
+					
 			}
 				
 			int latch_start = model_->prime(model_->num_inputs (),lev);

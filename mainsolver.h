@@ -78,7 +78,7 @@ class MainSolver : public CARSolver
 		}
 		
 		Assignment get_state (const bool forward = true, const bool partial = false);
-		Frame get_state_vector (int unroll_level);
+		std::vector<Cube> get_state_vector (int unroll_level);
 		
 		//this version is used for bad check only
 		Cube get_conflict (const int bad);
@@ -138,7 +138,7 @@ class MainSolver : public CARSolver
 			return frame_flags_[frame_level][unroll_level-1];
 		}
 		void shrink_model (Assignment& model, const bool forward, const bool partial);
-		Frame shrink_model_vector (Assignment& model,int unroll_level);
+		std::vector<Cube> shrink_model_vector (Assignment& model,int unroll_level);
 		void try_reduce (Cube& cu);
 };
 

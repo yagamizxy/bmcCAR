@@ -61,17 +61,21 @@ namespace car
 			int frame_level_;
 			int unroll_level_;
 		public:
-			Configuration(State* s,int frame_level,int unroll_level):s_(s),frame_level_(frame_level),unroll_level_(unroll_level){}
-			
-			~Configuration (){
-				delete s_;
+			Configuration(State* s,int frame_level,int unroll_level){
+				s_ = new State(s);
+				frame_level_ = frame_level;
+				unroll_level_ = unroll_level;
 			}
+			
+			
 			Configuration (const Configuration &config){
 				s_ = new State(config.get_state());
 				frame_level_ = config.get_frame_level();
 				unroll_level_ = config.get_unroll_level();
 			}
-
+			~Configuration (){
+							delete s_;
+						}
 			inline int get_frame_level(){
 				return frame_level_;
 			}

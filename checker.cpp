@@ -234,6 +234,7 @@ namespace car
 				for(int i = 0;i < states.size();++i){
 					Configuration temp_c(states[i],config.get_frame_level()-1+i,1);
 					configurations_.push_back(temp_c);
+					update_B_sequence(states[i]);
 				}
 				if(configurations_.back().get_frame_level() == -1) return true;
 			}
@@ -244,8 +245,7 @@ namespace car
 				if(unroll_level < unroll_max_){
 					config.set_unroll_level(unroll_level+1);
 					configurations_.push_back(config);
-				}
-					
+				}	
 			}
 		}
 		return false;
@@ -630,7 +630,6 @@ namespace car
 		int new_level = config.get_frame_level();
 		Assignment st2 = (config.get_state())->s();
 		// unroll in solver
-		if(solver_->get_unroll_level() < unroll_lev) solver_->unroll_to_level(unroll_lev);
 		//get unroll_lev prime of state
 		
 		solver_->set_assumption (st2, new_level, forward_,unroll_lev);
@@ -638,13 +637,6 @@ namespace car
 		bool res = solver_->solve_with_assumption ();
 		stats_->count_main_solver_SAT_time_end ();
 		return res;
-	}
-
-	bool Checker::solve_for_recursive (Cube& s, int frame_level, Cube& tmp_block){
-		assert (frame_level != -1);
-		
-		return solver_->solve_with_assumption_for_temporary (s, frame_level, forward_, tmp_block);
-				
 	}
 	
 	State* Checker::get_new_state (const State* s,const int unroll_lev)
@@ -663,7 +655,7 @@ namespace car
 	std::vector<State*> Checker::get_all_states(Configuration& config){
 		int unroll_lev = config.get_unroll_level();
 		State* s = config.get_state();
-		Frame st_vec = solver_->get_state_vector (unroll_lev);
+		std::vector<Cube> st_vec = solver_->get_state_vector (unroll_lev);
 		std::vector<State*> res;
 		std::pair<Assignment, Assignment> pa = state_pair (st_vec[0]);
 		State* first_s = new State (s, pa.first, pa.second, forward_,false,1); //get the first 
@@ -770,18 +762,8 @@ namespace car
 		{
 			return;
 		}
-		
-		
-		// if (frame_level > F_.size())
-		// 	unroll_pair.push_back(std::pair<Cube,int> (cu, frame_level));
-		// else
+
 		push_to_frame (cu, frame_level, unroll_lev);
-		
-		
-		if (forward_){
-			for (int i = frame_level-1; i >= 1; --i)
-				push_to_frame (cu, i);
-		}
 		
 		
 	}
@@ -974,48 +956,6 @@ namespace car
 			
 	}
 	
-	
-	Cube Checker::recursive_block (State* s, int frame_level, Cube cu, Cube& next_cu){
-		
-		Cube common = s->s();
-		State *tmp_s = new State (common);
-		
-		while (true){
-			
-			bool res = solve_for_recursive (common, frame_level, common);
-			if (!res){
-				next_cu = get_uc(common);
-				delete tmp_s;
-				return cu;
-			}
-			State* new_state = get_new_state (tmp_s);
-			assert (new_state != NULL);
-			common = car::cube_intersect (common, new_state->s());
-			delete new_state;
-			tmp_s->set_s(common);
-			
-			if (common.empty()){
-				delete tmp_s;
-				return cu;
-			}
-			
-			if (is_initial (common)){
-				delete tmp_s;
-				return cu;
-			}
-			
-			if (solve_with (common, frame_level-1)){
-				delete tmp_s;
-				return cu;
-			}
-			
-			cu = get_uc (common); 
-			
-			
-		}
-		
-	}
-	
 	Cube Checker::get_uc (Cube &c) {
 		bool constraint = false;
 		Cube cu = solver_->get_conflict (forward_, minimal_uc_, constraint);
@@ -1042,39 +982,48 @@ namespace car
 	void Checker::push_to_frame (Cube& cu, const int frame_level,int unroll_level)
 	{
 		//to be done
-		Frame& frame = (frame_level < int (F_.size ())) ? F_[frame_level] : frame_[unroll_level-1];
-		
-				
-		//To add \@ cu to \@ frame, there must be
-		//1. \@ cu does not imply any clause in \@ frame
-		//2. if a clause in \@ frame implies \@ cu, replace it by \@cu
-		Frame tmp_frame;
-		stats_->count_clause_contain_time_start ();
-		for (int i = 0; i < frame.size (); i ++)
-		{   
-			if (forward_){//for incremental
-				if (imply (cu, frame[i]))
-					return;
-			}
-			if (!imply (frame[i], cu))
-				tmp_frame.push_back (frame[i]);	
-			else {
-				
-			    stats_->count_clause_contain_success ();
-			}
-		} 
-		stats_->count_clause_contain_time_end ();
-		tmp_frame.push_back (cu);
-		
-		frame = tmp_frame;
-		
-		if (frame_level-1 < minimal_update_level_)
-			minimal_update_level_ = frame_level;
-		
-		if (frame_level < int (F_.size ())){
-			for(int i=1;i<=unroll_level;++i)
-				solver_->add_clause_from_cube (cu, frame_level, forward_,unroll_level);
+		//Frame& frame = (frame_level < int (F_.size ())) ? F_[frame_level] : frame_[unroll_level-1];
+		assert(frame_level+unroll_level <= F_.size ());
+		if(frame_level+unroll_level == F_.size ()){
+			Frame new_frame;
+			new_frame.push_back(cu);
+			F_.push_back(new_frame);
+
+		}	
+		else{
+			Frame& frame = F_[frame_level+unroll_level];
+			//To add \@ cu to \@ frame, there must be
+			//1. \@ cu does not imply any clause in \@ frame
+			//2. if a clause in \@ frame implies \@ cu, replace it by \@cu
+			Frame tmp_frame;
+			stats_->count_clause_contain_time_start ();
+			for (int i = 0; i < frame.size (); i ++)
+			{   
+				if (forward_){//for incremental
+					if (imply (cu, frame[i]))
+						return;
+				}
+				if (!imply (frame[i], cu))
+					tmp_frame.push_back (frame[i]);	
+				else {
+					
+					stats_->count_clause_contain_success ();
+				}
+			} 
+			stats_->count_clause_contain_time_end ();
+			tmp_frame.push_back (cu);
+			
+			frame = tmp_frame;
+
 		}
+		
+		if (frame_level+unroll_level-1 < minimal_update_level_)
+			minimal_update_level_ = frame_level+unroll_level;
+		
+		
+		for(int i=1;i<=unroll_level;++i)
+			solver_->add_clause_from_cube (cu, frame_level+unroll_level, forward_,unroll_level);
+
 		//to be done
 		// else if (frame_level == int (F_.size ()))
 		// 	start_solver_->add_clause_with_flag (cu);
