@@ -66,7 +66,7 @@ namespace car
 			~Configuration (){
 				delete s_;
 			}
-			Configuration &operator=(Configuration &config){
+			Configuration (const Configuration &config){
 				s_ = new State(config.get_state());
 				frame_level_ = config.get_frame_level();
 				unroll_level_ = config.get_unroll_level();
