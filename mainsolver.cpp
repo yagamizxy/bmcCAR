@@ -111,11 +111,11 @@ namespace car
 		return model;
 	}
 	
-	Assignment MainSolver::get_state_vector (int unroll_level)
+	Frame MainSolver::get_state_vector (int unroll_level)
 	{
 		Assignment model = get_model ();
-		shrink_model_vector (unroll_level);
-		return model;
+		Frame res = shrink_model_vector (model,unroll_level);
+		return res;
 	}
 
 	//this version is used for bad check only
@@ -269,45 +269,34 @@ namespace car
 		model = res;
 	}
 	
-	void MainSolver::shrink_model_vector (Assignment& model,int unroll_level)
+	Frame MainSolver::shrink_model_vector (Assignment& model,int unroll_level)
 	{
-	    Assignment res;
+		Frame res;
+		for(int lev = 2; lev <= unroll_level; ++lev){
+			Cube element;
+			for (int i = model_->prime(0,lev); i < model_->prime(model_->num_inputs (),lev); i ++)
+			{
+				if (i >= model.size ())
+				{//the value is DON'T CARE, so we just set to 0
+					element.push_back (0);
+				}
+				else
+					element.push_back (model_->previous(model[i],lev));
+			}
+				
+			int latch_start = model_->prime(model_->num_inputs (),lev);
+			int latch_end = model_->prime(model_->num_inputs ()+model_->num_latches (),lev);
+			for (int i = latch_start; i < latch_end; i ++)
+			{
+				assert (i != 0);
+				assert (model.size () > abs (i));
+				element.push_back (model_->previous(model[i],lev));
+			}
+			res.push_back(element);
+			
+		}
+		return res;
 	    
-	    for (int i = 0; i < model_->num_inputs (); i ++)
-	    {
-	        if (i >= model.size ())
-	        {//the value is DON'T CARE, so we just set to 0
-	            res.push_back (0);
-	        }
-	        else
-	            res.push_back (model[i]);
-	    }
-	        
-		Assignment tmp;
-		tmp.resize (model_->num_latches (), 0);
-		for (int i = model_->num_inputs ()+1; i <= model_->num_inputs () + model_->num_latches (); i ++)
-		{
-			
-			int p = model_->prime (i);
-			assert (p != 0);
-			assert (model.size () > abs (p));
-			
-			int val = model[abs(p)-1];
-			if (p == val)
-				tmp[i-model_->num_inputs ()-1] = i;
-			else
-				tmp[i-model_->num_inputs ()-1] = -i;
-		}
-		
-					
-		for (int i = 0; i < tmp.size (); i ++)
-			res.push_back (tmp[i]);
-		if (partial)
-		{
-			//TO BE DONE
-		}
-	
-		model = res;
 	}
 
 	void MainSolver::try_reduce (Cube& cu)

@@ -86,7 +86,7 @@ class MainSolver : public CARSolver
 		
 		void add_new_frame (const Frame& frame, const int frame_level, const bool forward);
 		//overload
-		void add_clause_from_cube (const Cube& cu, const int frame_level, const bool forward_);
+		void add_clause_from_cube (const Cube& cu, const int frame_level, const bool forward_,int unroll_level=1);
 		
 		bool solve_with_assumption_for_temporary (Cube& s, int frame_level, bool forward, Cube& tmp_block);
 		
@@ -124,7 +124,7 @@ class MainSolver : public CARSolver
 		
 		
 		
-		inline int flag_of (const unsigned frame_level,const int unroll_level) 
+		inline int flag_of (const unsigned frame_level,const int unroll_level=1) 
 		{
 		    assert (frame_level >= 0);
 			while (frame_level >= frame_flags_.size ())
@@ -138,7 +138,7 @@ class MainSolver : public CARSolver
 			return frame_flags_[frame_level][unroll_level-1];
 		}
 		void shrink_model (Assignment& model, const bool forward, const bool partial);
-		void shrink_model_vector (Assignment& model,int unroll_level);
+		Frame shrink_model_vector (Assignment& model,int unroll_level);
 		void try_reduce (Cube& cu);
 };
 

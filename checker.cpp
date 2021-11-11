@@ -107,7 +107,7 @@ namespace car
 			minimal_update_level_ = F_.size () - 1;
 			if (try_satisfy (loop_index)){
 				if (verbose_)
-					cout << "return SAT from try_satisfy at frame level " << frame_level << endl;
+					cout << "return SAT from try_satisfy at frame level " << loop_index << endl;
 				return true;
 			}
 			//it is true when some reason returned from Main solver is empty
@@ -127,7 +127,7 @@ namespace car
 			
 			
 			
-			if (invariant_found ()){  //use F size
+			if (invariant_found (loop_index)){  //use F size
 				if (verbose_){
 					cout << "return UNSAT from invariant found at frame " << F_.size ()-1 << endl;
 					print ();	
@@ -226,7 +226,7 @@ namespace car
 		configurations_.push_back(c);
 		while(!configurations_.empty()) //stack non empty
 		{
-			Configuration& config = configurations_.back();
+			Configuration config = configurations_.back();
 			configurations_.pop_back();
 			
 			if(is_sat(config)){
@@ -624,11 +624,11 @@ namespace car
 		return res;
 	}
 	
-	bool Checker::is_sat(Configuration& config){
+	bool Checker::is_sat(Configuration config){
 		//unroll in solver
 		int unroll_lev = config.get_unroll_level();
 		int new_level = config.get_frame_level();
-		Assignment st2 = config.get_state()->s();
+		Assignment st2 = (config.get_state())->s();
 		// unroll in solver
 		if(solver_->get_unroll_level() < unroll_lev) solver_->unroll_to_level(unroll_lev);
 		//get unroll_lev prime of state
@@ -665,9 +665,14 @@ namespace car
 		State* s = config.get_state();
 		Frame st_vec = solver_->get_state_vector (unroll_lev);
 		std::vector<State*> res;
-		for (auto it=st_vec.begin();it != st_vec.end();++it){
-			std::pair<Assignment, Assignment> pa = state_pair (*it);
-			res.push_back(new State (s, pa.first, pa.second, forward_,false,unroll_lev));
+		std::pair<Assignment, Assignment> pa = state_pair (st_vec[0]);
+		State* first_s = new State (s, pa.first, pa.second, forward_,false,1); //get the first 
+		res.push_back(first_s);
+		for (int ind = 1;ind < st_vec.size();++ind){
+			std::pair<Assignment, Assignment> pa = state_pair (st_vec[ind]);
+			State* new_s = new State (first_s, pa.first, pa.second, forward_,false,ind+1);
+			res.push_back(new_s);
+			first_s = new_s;
 		}
 		
 		return res;
@@ -1067,7 +1072,7 @@ namespace car
 			minimal_update_level_ = frame_level;
 		
 		if (frame_level < int (F_.size ())){
-			for(int i=1;i<=unroll_lev;++i)
+			for(int i=1;i<=unroll_level;++i)
 				solver_->add_clause_from_cube (cu, frame_level, forward_,unroll_level);
 		}
 		//to be done

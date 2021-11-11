@@ -62,8 +62,14 @@ namespace car
 			int unroll_level_;
 		public:
 			Configuration(State* s,int frame_level,int unroll_level):s_(s),frame_level_(frame_level),unroll_level_(unroll_level){}
+			
 			~Configuration (){
 				delete s_;
+			}
+			Configuration &operator=(Configuration &config){
+				s_ = new State(config.get_state());
+				frame_level_ = config.get_frame_level();
+				unroll_level_ = config.get_unroll_level();
 			}
 
 			inline int get_frame_level(){
@@ -188,7 +194,7 @@ namespace car
 		void get_partial (Assignment& st, const State* s=NULL);
 		void add_dead_to_solvers (Cube& dead_uc);
 		bool is_dead (const State* s, Cube& dead_uc);
-		bool is_sat(Configuration& config);
+		bool is_sat(Configuration config);
 
 		bool solve_for_recursive (Cube& s, int frame_level, Cube& tmp_block);
 		Cube recursive_block (State* s, int frame_level, Cube cu, Cube& next_cu);
