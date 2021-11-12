@@ -125,7 +125,7 @@ namespace car
 				return false;
 			}
 			
-			loop_index ++;
+			loop_index += unroll_max_;
 			
 		}
 		if (verbose_)
@@ -189,18 +189,23 @@ namespace car
 		if (tried_before (s, loop_index+1))
 			return false;
 		
-		Configuration c(s,(loop_index-1)*unroll_max_,1);
+		Configuration c(s,(loop_index-1),1);
 		assert(configurations_.empty());
 		configurations_.push_back(c);
 		while(!configurations_.empty()) //stack non empty
 		{
 			Configuration config = configurations_.back();
-			configurations_.pop_back();
 			
+			if (tried_before (config.get_state(),config.get_frame_level()+config.get_unroll_level() )){
+				configurations_.pop_back();
+				continue;
+			}
+
 			if(is_sat(config)){
+
 				std::vector<State*> states = get_all_states(config); //states in order, the last is the new state not in config.framelevel
 				for(int i = 0;i < states.size();++i){
-					Configuration temp_c(states[i],config.get_frame_level()-1+i,1);
+					Configuration temp_c(states[i],config.get_frame_level()+states.size()-i-2,1);
 					configurations_.push_back(temp_c);
 					update_B_sequence(states[i]);
 				}
@@ -208,6 +213,7 @@ namespace car
 					return true;
 			}
 			else{
+				configurations_.pop_back();
 				update_F_sequence(config); 
 				if (safe_reported()) return false;
 				int unroll_level = config.get_unroll_level();
@@ -718,8 +724,7 @@ namespace car
 		
 		bool constraint = false;
 		Cube cu = solver_->get_conflict (forward_, minimal_uc_, constraint, unroll_lev);
-		cout<<"unroll_lev: "<<unroll_lev<<endl;
-		car::print(cu);
+		
 	
 		
 		if(cu.empty()){
@@ -734,7 +739,7 @@ namespace car
 
 		push_to_frame (cu, frame_level, unroll_lev);
 		
-		
+		solver_->print_clauses();
 	}
 	
 	bool Checker::is_dead (const State* s, Cube& dead_uc){
@@ -975,7 +980,6 @@ namespace car
 				if (!imply (frame[i], cu))
 					tmp_frame.push_back (frame[i]);	
 				else {
-					
 					stats_->count_clause_contain_success ();
 				}
 			} 
@@ -990,9 +994,10 @@ namespace car
 			minimal_update_level_ = frame_level+unroll_level;
 		
 		
-		for(int i=1;i<=unroll_level;++i)
-			solver_->add_clause_from_cube (cu, frame_level+unroll_level, forward_,unroll_level);
-
+		for(int i=1;i<=unroll_max_;++i)
+			solver_->add_clause_from_cube (cu, frame_level+unroll_level, forward_,i);
+		// cout<<"frame_lev: "<<frame_level+unroll_level<<endl;
+		// car::print(cu);
 		//to be done
 		// else if (frame_level == int (F_.size ()))
 		// 	start_solver_->add_clause_with_flag (cu);
@@ -1014,44 +1019,23 @@ namespace car
 	}
 	
 	bool Checker::tried_before (const State* st, const int frame_level) {
-		//check whether st is a dead state	
-		if (st->is_dead ()) 
-			return true;
-		for(auto it = deads_.begin(); it != deads_.end(); ++it){
-			bool res = partial_state_ ? car::imply (st->s(), *it) : st->imply (*it);
-			res = res && !is_initial (st->s());
-			if (res){
-				st->mark_dead ();
-				return true;
-			}
-		}
-		//end of check
 		
+		//end of check
+		if (F_.size() <= frame_level)
+			return false;
 	    assert (frame_level >= 0);
-	    Frame &frame = (frame_level < F_.size ()) ? F_[frame_level] : frame_[frame_level-F_.size()];
-	    if (!partial_state_){
-	    	//assume that st is a full state
-	    	assert (const_cast<State*>(st)->size () == model_->num_latches ());
+	    //Frame &frame = (frame_level < F_.size ()) ? F_[frame_level] : frame_[frame_level-F_.size()];
+		Frame &frame = F_[frame_level];
 	    
-	    	stats_->count_state_contain_time_start ();
-	    	for (int i = 0; i < frame.size (); i ++) {
-	        	if (st->imply (frame[i])) {
-	            	stats_->count_state_contain_time_end ();
-	            	return true;
-	        	} 
-	    	}
-	    	stats_->count_state_contain_time_end ();
-	    }
-	    else{
-	    	stats_->count_state_contain_time_start ();
-	    	for (int i = 0; i < frame.size (); i ++) {
-	        	if (car::imply (st->s(), frame[i])) {
-	            	stats_->count_state_contain_time_end ();
-	            	return true;
-	        	} 
-	    	}
-	    	stats_->count_state_contain_time_end ();
-	    }
+		stats_->count_state_contain_time_start ();
+		for (int i = 0; i < frame.size (); i ++) {
+			if (car::imply (st->s(), frame[i])) {
+				stats_->count_state_contain_time_end ();
+				return true;
+			} 
+		}
+		stats_->count_state_contain_time_end ();
+	    
 	   
 	    
 	    return false;

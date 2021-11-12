@@ -46,7 +46,7 @@ namespace car{
 		true_ = aig->maxvar+1;
 		false_ = -true_;
 		//preserve two more ids for TRUE (max_id_ - 1) and FALSE (max_id_)
-		max_id_ = 2*(aig->maxvar+1);
+		max_id_ = aig->maxvar+2;
 		
 
 		collect_trues (aig);
@@ -326,13 +326,13 @@ namespace car{
 	{
 		//assert (id != 0 && abs(id) <= max_id_/2);
 		
-		return (id >= 0 ? (id + (max_id_/2)*level) : (id - (max_id_/2)*level));
+		return (id >= 0 ? (id + (max_id_)*level) : (id - (max_id_)*level));
 	}
 		
 	int Model::previous (const int id,int level){
-		assert (abs(id) >= (max_id_/2)*level);
+		assert (abs(id) >= (max_id_)*level);
 		
-		return (id > 0 ? (id - (max_id_/2)*level) : (id + (max_id_/2)*level));
+		return (id > 0 ? (id - (max_id_)*level) : (id + (max_id_)*level));
 	}
 	
 	//prime of cls_[id]

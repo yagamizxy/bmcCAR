@@ -41,9 +41,9 @@ namespace car
 		model_ = m;
 		current_unroll_level_ = 1; //default unrolling level is 1
 		max_unroll_level_ = m->get_max_unroll();
-		init_flag_ = m->max_id()*(max_unroll_level_+1)/2 + 1;
-		dead_flag_ = m->max_id ()*(max_unroll_level_+1)/2 + 2;
-		max_flag_ = m->max_id()*(max_unroll_level_+1)/2 + 3;
+		init_flag_ = m->max_id()*(max_unroll_level_+1) + 1;
+		dead_flag_ = m->max_id ()*(max_unroll_level_+1) + 2;
+		max_flag_ = m->max_id()*(max_unroll_level_+1) + 3;
 	    //constraints
 		for (int i = 0; i < m->outputs_start (); i ++)
 			add_clause (m->element (i));
@@ -170,6 +170,10 @@ namespace car
 	void MainSolver::add_clause_from_cube (const Cube& cu, const int frame_level, const bool forward,int unroll_level)
 	{
 		int flag = flag_of (frame_level,unroll_level);//flag_of (frame_level,unroll_level)
+		cout<<"flag: "<<flag<<endl;
+		cout<<"frame_level: "<<frame_level<<endl;
+		cout<<"unroll_level: "<<unroll_level<<endl;
+		car::print(cu);
 		vector<int> cl;
 		cl.push_back (-flag);
 		for (int i = 0; i < cu.size (); i ++)
