@@ -116,18 +116,8 @@ namespace car
 					cout << "return UNSAT from safe reported" << endl;
 				return false;
 			}
-			//extend_F_sequence ();
-			//push_unrollpair_to_frame();
-			
-			// if (propagate_){
-			// 	clear_frame ();
-			// 	if (propagate ())
-			// 		return false;
-			// }
-			
-			
-			
-			if (invariant_found (loop_index)){  //use F size
+			//solver_->print_clauses();
+			if (invariant_found ()){  //use F size
 				if (verbose_){
 					cout << "return UNSAT from invariant found at frame " << F_.size ()-1 << endl;
 					print ();	
@@ -151,29 +141,7 @@ namespace car
 		    return true;
 		else if (res == 0)
 		    return false;
-		
-		//for forward CAR, the initial states are set of cubes
-		//State *s = enumerate_start_state ();
-		// while (s != NULL)
-		// {
-		
-		//     if (!forward_) //for dot drawing
-		// 	    s->set_initial (true);
-			
-		// 	//////generate dot data
-		// 	if (dot_ != NULL)
-		// 	    (*dot_) << "\n\t\t\t" << s->id () << " [shape = circle, color = red, label = \"Init\", size = 0.1];";
-		// 	//////generate dot data
-			
-		// 	s->set_depth (0);
-		//     update_B_sequence (s);
-		// 	if (try_satisfy_by (frame_level, s))
-		// 	    return true;
-		// 	if (safe_reported ())
-		// 		return false;
-		//     s = enumerate_start_state ();
-		// }
-	
+
 		return false;
 	}
 	
@@ -236,7 +204,8 @@ namespace car
 					configurations_.push_back(temp_c);
 					update_B_sequence(states[i]);
 				}
-				if(configurations_.back().get_frame_level() == -1) return true;
+				if(config.get_frame_level() == 0) //exit should be reconsidered
+					return true;
 			}
 			else{
 				update_F_sequence(config); 
@@ -293,17 +262,17 @@ namespace car
 		return false;
 	}
 	
-	bool Checker::propagate (Cube& cu, int n){
-		solver_->set_assumption (cu, n, forward_);
-		//solver_->print_assumption();
-		//solver_->print_clauses();
-	    stats_->count_main_solver_SAT_time_start ();
-		bool res = solver_->solve_with_assumption ();
-		stats_->count_main_solver_SAT_time_end ();
-		if (!res)
-			return true;
-		return false;
-	}
+	// bool Checker::propagate (Cube& cu, int n){
+	// 	solver_->set_assumption (cu, n, forward_);
+	// 	//solver_->print_assumption();
+	// 	//solver_->print_clauses();
+	//     stats_->count_main_solver_SAT_time_start ();
+	// 	bool res = solver_->solve_with_assumption ();
+	// 	stats_->count_main_solver_SAT_time_end ();
+	// 	if (!res)
+	// 		return true;
+	// 	return false;
+	// }
 	
 		
 	//////////////helper functions/////////////////////////////////////////////
@@ -354,12 +323,12 @@ namespace car
 		    delete last_;
 		    last_ = NULL;
 		}
-		car_finalization ();
+		//car_finalization ();
 	}
 	
 	void Checker::destroy_states ()
 	{    
-	    for (int i = 0; i < B_.size (); i ++)
+	    for (int i = 1; i < B_.size (); i ++)
 	    {
 	    	//cout << "B[" << i << "]:" <<endl;
 	        for (int j = 0; j < B_[i].size (); j ++)
@@ -554,10 +523,9 @@ namespace car
 	    }
 	}
 	
-	bool Checker::invariant_found (int frame_level)
+	bool Checker::invariant_found ()
 	{
-		if (frame_level == 0)
-			return false;
+		int frame_level = F_.size();
 		bool res = false;
 		create_inv_solver ();
 		for (int i = 0; i < frame_level; i ++)
@@ -614,15 +582,15 @@ namespace car
 		inv_solver_->release_constraint_and ();
 	}
 	
-	bool Checker::solve_with (const Cube& s, const int frame_level)
-	{
-		if (frame_level == -1)
-			return immediate_satisfiable (s);
+	// bool Checker::solve_with (const Cube& s, const int frame_level)
+	// {
+	// 	if (frame_level == -1)
+	// 		return immediate_satisfiable (s);
 				
-		bool res = solver_solve_with_assumption (s, frame_level, forward_);
+	// 	bool res = solver_solve_with_assumption (s, frame_level, forward_);
 		
-		return res;
-	}
+	// 	return res;
+	// }
 	
 	bool Checker::is_sat(Configuration config){
 		//unroll in solver
@@ -632,7 +600,7 @@ namespace car
 		// unroll in solver
 		//get unroll_lev prime of state
 		
-		solver_->set_assumption (st2, new_level, forward_,unroll_lev);
+		solver_->set_assumption (st2,bad_, new_level, forward_,unroll_lev);
 		stats_->count_main_solver_SAT_time_start ();
 		bool res = solver_->solve_with_assumption ();
 		stats_->count_main_solver_SAT_time_end ();
@@ -750,7 +718,8 @@ namespace car
 		
 		bool constraint = false;
 		Cube cu = solver_->get_conflict (forward_, minimal_uc_, constraint, unroll_lev);
-		
+		cout<<"unroll_lev: "<<unroll_lev<<endl;
+		car::print(cu);
 	
 		
 		if(cu.empty()){

@@ -67,11 +67,13 @@ namespace car
 		}		
 	}
 	
-	void MainSolver::set_assumption (const Assignment& a, const int frame_level, const bool forward,const int unroll_lev)
+	void MainSolver::set_assumption (const Assignment& a,const int bad,const int frame_level, const bool forward,const int unroll_lev)
 	{
 		assumption_.clear ();
-		if (frame_level > -1)
-			assumption_push (flag_of (frame_level,unroll_lev));		
+		if (frame_level > 0)
+			assumption_push (flag_of (frame_level,unroll_lev));	
+		else if(frame_level == 0)
+			assumption_push(model_->prime(bad,unroll_lev));
 		for (Assignment::const_iterator it = a.begin (); it != a.end (); it ++)
 		{
 			int id = *it;

@@ -121,7 +121,7 @@ void check_aiger (int argc, char** argv)
    bool end = true;
    bool inter = true;
    bool rotate = false;
-   int unroll_max = 1;  //control unroll level 
+   int unroll_max = 12;  //control unroll level 
    
    string input;
    string output_dir;

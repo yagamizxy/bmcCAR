@@ -41,7 +41,7 @@ class MainSolver : public CARSolver
 		~MainSolver (){}
 		
 		//public funcitons
-		void set_assumption (const Assignment&, const int frame_level, const bool forward,const int unroll_lev = 1);
+		void set_assumption (const Assignment&, const int bad,const int frame_level, const bool forward,const int unroll_lev = 1);
 		void set_assumption (const Assignment&, const int);
 		void set_assumption (const Assignment& st){
 			assumption_.clear ();
@@ -126,8 +126,8 @@ class MainSolver : public CARSolver
 		
 		inline int flag_of (const unsigned frame_level,const int unroll_level=1) 
 		{
-		    assert (frame_level >= 0);
-			while (frame_level >= frame_flags_.size ())
+		    assert (frame_level > 0);
+			while (frame_level > frame_flags_.size ())
 			{
 				Cube tmp;
 				for(int i=0;i<max_unroll_level_;++i)
@@ -135,7 +135,7 @@ class MainSolver : public CARSolver
 				frame_flags_.push_back (tmp);
 			}
 	        
-			return frame_flags_[frame_level][unroll_level-1];
+			return frame_flags_[frame_level-1][unroll_level-1];
 		}
 		void shrink_model (Assignment& model, const bool forward, const bool partial);
 		std::vector<Cube> shrink_model_vector (Assignment& model,int unroll_level);

@@ -169,7 +169,7 @@ namespace car
 		bool try_satisfy (const int frame_level);
 		int do_search (const int frame_level);
 		bool try_satisfy_by (int frame_level, State* s);
-		bool invariant_found (int frame_level);
+		bool invariant_found ();
 		bool invariant_found_at (const int frame_level);
 		void inv_solver_add_constraint_or (const int frame_level);
 		void inv_solver_add_constraint_and (const int frame_level);
@@ -306,27 +306,6 @@ namespace car
 	        return res;
 	    }
 	    
-	    inline bool solver_solve_with_assumption (const Assignment& st, const int frame_level, bool forward){
-	        //if (reconstruct_solver_required ())
-	            //reconstruct_solver ();
-	        Assignment st2 = st;
-	        add_intersection_last_uc_in_frame_level_plus_one (st2, frame_level);
-	        solver_->set_assumption (st2, frame_level, forward);
-	        stats_->count_main_solver_SAT_time_start ();
-		    bool res = solver_->solve_with_assumption ();
-		    stats_->count_main_solver_SAT_time_end ();
-		    if (!res) {
-		    	Assignment st3; 
-		    	st3.reserve (model_->num_latches());
-		    	for (int i = st2.size ()-model_->num_latches(); i < st2.size (); ++ i)
-		    		st3.push_back (st2[i]);
-		        if (frame_level+1 < cubes_.size ()) 
-		            cubes_[frame_level+1] = st3;
-		        else
-		            cube_ = st3;
-		    }
-		    return res;
-	    }
 	    
 	    inline void clear_frame (){
 	        frame_.clear ();
