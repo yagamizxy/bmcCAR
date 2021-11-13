@@ -91,6 +91,7 @@ namespace car
 		initialize_sequences ();
 			
 		int loop_index = 1;
+		int inv_index = 1;
 		while (true){
 		    cout << "Frame " << loop_index << endl;
 		    //print the number of clauses in each frame
@@ -117,14 +118,14 @@ namespace car
 				return false;
 			}
 			//solver_->print_clauses();
-			if (invariant_found ()){  //use F size
+			if (invariant_found (inv_index)){  //use F size
 				if (verbose_){
 					cout << "return UNSAT from invariant found at frame " << F_.size ()-1 << endl;
 					print ();	
 				}
 				return false;
 			}
-			
+			inv_index +=1;
 			loop_index += unroll_max_;
 			
 		}
@@ -529,9 +530,9 @@ namespace car
 	    }
 	}
 	
-	bool Checker::invariant_found ()
+	bool Checker::invariant_found (int& inv_index)
 	{
-		int frame_level = F_.size();
+		int frame_level = inv_index;
 		bool res = false;
 		create_inv_solver ();
 		for (int i = 0; i < frame_level; i ++)
@@ -714,6 +715,7 @@ namespace car
 	        vector<State*> v;
 	        B_.push_back (v);
 	    }
+		
 	    B_[s->depth ()].push_back (s);
 	}
 	
@@ -739,7 +741,6 @@ namespace car
 
 		push_to_frame (cu, frame_level, unroll_lev);
 		
-		solver_->print_clauses();
 	}
 	
 	bool Checker::is_dead (const State* s, Cube& dead_uc){

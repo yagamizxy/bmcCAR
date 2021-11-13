@@ -41,7 +41,7 @@
  	class State 
  	{
  	public:
- 	    State (const Assignment& latches) : s_ (latches), pre_ (NULL), next_ (NULL), dead_ (false), added_to_dead_solver_ (false) {}
+ 	    State (const Assignment& latches) : s_ (latches), pre_ (NULL), next_ (NULL), dead_ (false),dep_ (0), added_to_dead_solver_ (false) {}
 
  		State (const State *s, const Assignment& inputs, const Assignment& latches, const bool forward, const bool last = false,const int unroll_lev=1); 
  		

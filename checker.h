@@ -169,7 +169,7 @@ namespace car
 		bool try_satisfy (const int frame_level);
 		int do_search (const int frame_level);
 		bool try_satisfy_by (int frame_level, State* s);
-		bool invariant_found ();
+		bool invariant_found (int& inv_index);
 		bool invariant_found_at (const int frame_level);
 		void inv_solver_add_constraint_or (const int frame_level);
 		void inv_solver_add_constraint_and (const int frame_level);

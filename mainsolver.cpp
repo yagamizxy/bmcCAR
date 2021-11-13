@@ -170,10 +170,10 @@ namespace car
 	void MainSolver::add_clause_from_cube (const Cube& cu, const int frame_level, const bool forward,int unroll_level)
 	{
 		int flag = flag_of (frame_level,unroll_level);//flag_of (frame_level,unroll_level)
-		cout<<"flag: "<<flag<<endl;
-		cout<<"frame_level: "<<frame_level<<endl;
-		cout<<"unroll_level: "<<unroll_level<<endl;
-		car::print(cu);
+		// cout<<"flag: "<<flag<<endl;
+		// cout<<"frame_level: "<<frame_level<<endl;
+		// cout<<"unroll_level: "<<unroll_level<<endl;
+		// car::print(cu);
 		vector<int> cl;
 		cl.push_back (-flag);
 		for (int i = 0; i < cu.size (); i ++)
