@@ -90,8 +90,8 @@ namespace car
 
 		initialize_sequences ();
 			
-		int loop_index = 1;
-		int inv_index = 1;
+		int loop_index = 0;
+		
 		while (true){
 		    cout << "Frame " << loop_index << endl;
 		    //print the number of clauses in each frame
@@ -118,15 +118,14 @@ namespace car
 				return false;
 			}
 			//solver_->print_clauses();
-			if (invariant_found (inv_index)){  //use F size
-				if (verbose_){
-					cout << "return UNSAT from invariant found at frame " << F_.size ()-1 << endl;
-					print ();	
-				}
-				return false;
-			}
-			inv_index +=1;
-			loop_index += unroll_max_;
+			// if (invariant_found (loop_index)){  //use F size
+			// 	if (verbose_){
+			// 		cout << "return UNSAT from invariant found at frame " << F_.size ()-1 << endl;
+			// 		print ();	
+			// 	}
+			// 	return false;
+			// }
+			loop_index += 1;
 			
 		}
 		if (verbose_)
@@ -190,7 +189,7 @@ namespace car
 		if (tried_before (s, loop_index+1))
 			return false;
 		
-		Configuration c(s,(loop_index-1),1);
+		Configuration c(s,(loop_index),1);
 		assert(configurations_.empty());
 		configurations_.push_back(c);
 		while(!configurations_.empty()) //stack non empty
@@ -218,8 +217,13 @@ namespace car
 				update_F_sequence(config); 
 				if (safe_reported()) return false;
 				int unroll_level = config.get_unroll_level();
+				int frame_level = config.get_frame_level();
 				if(unroll_level < unroll_max_){
 					config.set_unroll_level(unroll_level+1);
+					configurations_.push_back(config);
+				}
+				else if(frame_level < loop_index){
+					config.set_frame_level(frame_level+1);
 					configurations_.push_back(config);
 				}	
 			}

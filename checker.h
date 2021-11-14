@@ -91,6 +91,10 @@ namespace car
 			inline void set_unroll_level(int level){
 				unroll_level_ = level;
 			}
+
+			inline void set_frame_level(int level){
+				frame_level_ = level;
+			}
 	};
 
 
