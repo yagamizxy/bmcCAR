@@ -202,7 +202,7 @@ namespace car
 		void get_partial (Assignment& st, const State* s=NULL);
 		void add_dead_to_solvers (Cube& dead_uc);
 		bool is_dead (const State* s, Cube& dead_uc);
-		bool is_sat(Configuration config);
+		//bool is_sat(Configuration config);
 
 		bool solve_for_recursive (Cube& s, int frame_level, Cube& tmp_block);
 		Cube recursive_block (State* s, int frame_level, Cube cu, Cube& next_cu);
@@ -288,6 +288,33 @@ namespace car
 	        }
 	    }
 	    
+		inline bool is_sat(Configuration config){
+		//unroll in solver
+		int unroll_lev = config.get_unroll_level();
+		int new_level = config.get_frame_level();
+		Assignment st2 = (config.get_state())->s();
+		add_intersection_last_uc_in_frame_level_plus_one (st2, new_level);
+		// unroll in solver
+		//get unroll_lev prime of state
+		
+		solver_->set_assumption (st2,bad_, new_level, forward_,unroll_lev);
+		stats_->count_main_solver_SAT_time_start ();
+		bool res = solver_->solve_with_assumption ();
+		stats_->count_main_solver_SAT_time_end ();
+		if (!res) {
+			Assignment st3; 
+			st3.reserve (model_->num_latches());
+			for (int i = st2.size ()-model_->num_latches(); i < st2.size (); ++ i)
+				st3.push_back (st2[i]);
+			if (new_level+1 < cubes_.size ()) 
+				cubes_[new_level+1] = st3;
+			else
+				cube_ = st3;
+		    }
+
+		return res;
+	}
+
 	    inline bool solver_solve_with_assumption (const Assignment& st, const int p){
 	        //if (reconstruct_solver_required ())
 	            //reconstruct_solver ();

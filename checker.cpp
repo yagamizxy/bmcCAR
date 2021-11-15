@@ -117,6 +117,11 @@ namespace car
 					cout << "return UNSAT from safe reported" << endl;
 				return false;
 			}
+			if (propagate_){
+				//clear_frame ();
+				if (propagate ())
+					return false;
+			}
 			//solver_->print_clauses();
 			// if (invariant_found (loop_index)){  //use F size
 			// 	if (verbose_){
@@ -234,56 +239,57 @@ namespace car
 	
 	/*************propagation****************/
 	bool Checker::propagate (){
-		int start = forward_ ? (minimal_update_level_ == 0 ? 1 : minimal_update_level_) : minimal_update_level_;
-		for (int i = (start); i < F_.size(); ++i)
+		//int start = forward_ ? (minimal_update_level_ == 0 ? 1 : minimal_update_level_) : minimal_update_level_;
+		int start = minimal_update_level_;
+		for (int i = (start); i < F_.size()-1; ++i)
 			if (propagate (i))
 				return true;
 		return false;
 	}
 	
 	bool Checker::propagate (int n){
-		// assert (n >= 0 && n < F_.size());
-		// Frame& frame = F_[n];
-		// Frame& next_frame = (n+1 >= F_.size()) ? frame_ : F_[n+1];
-		
-		// bool flag = true;
-		// for (int i = 0; i < frame.size (); ++i){
-		// 	Cube& cu = frame[i];
+		assert (n >= 0 && n < F_.size()-1);
+		Frame& frame = F_[n];
+		//Frame& next_frame = (n+1 >= F_.size()) ? frame_ : F_[n+1];
+		Frame& next_frame = F_[n+1];
+		bool flag = true;
+		for (int i = 0; i < frame.size (); ++i){
+			Cube& cu = frame[i];
 			
 			
-		// 	bool propagated = false;
-		// 	for (int j = 0; j < next_frame.size(); ++j){
-		// 		if (car::imply (cu, next_frame[j]) && car::imply (next_frame[j], cu)){
-		// 			propagated = true;
-		// 			break;
-		// 		}
-		// 	}
-		// 	if (propagated) continue;
+			bool propagated = false;
+			for (int j = 0; j < next_frame.size(); ++j){
+				if (car::imply (cu, next_frame[j]) && car::imply (next_frame[j], cu)){
+					propagated = true;
+					break;
+				}
+			}
+			if (propagated) continue;
 			
 	
-		//     if (propagate (cu, n)){
-		//     	push_to_frame (cu, n+1);
-		//     }
-		//     else
-		//     	flag = false;
-		// }
+		    if (propagate (cu, n)){
+		    	push_to_frame (cu, n+1,0);
+		    }
+		    else
+		    	flag = false;
+		}
 		
-		// if (flag)
-		// 	return true;
+		if (flag)
+			return true;
 		return false;
 	}
 	
-	// bool Checker::propagate (Cube& cu, int n){
-	// 	solver_->set_assumption (cu, n, forward_);
-	// 	//solver_->print_assumption();
-	// 	//solver_->print_clauses();
-	//     stats_->count_main_solver_SAT_time_start ();
-	// 	bool res = solver_->solve_with_assumption ();
-	// 	stats_->count_main_solver_SAT_time_end ();
-	// 	if (!res)
-	// 		return true;
-	// 	return false;
-	// }
+	bool Checker::propagate (Cube& cu, int n){
+		solver_->set_assumption (cu, n, forward_,1);
+		//solver_->print_assumption();
+		//solver_->print_clauses();
+	    stats_->count_main_solver_SAT_time_start ();
+		bool res = solver_->solve_with_assumption ();
+		stats_->count_main_solver_SAT_time_end ();
+		if (!res)
+			return true;
+		return false;
+	}
 	
 		
 	//////////////helper functions/////////////////////////////////////////////
@@ -603,20 +609,7 @@ namespace car
 	// 	return res;
 	// }
 	
-	bool Checker::is_sat(Configuration config){
-		//unroll in solver
-		int unroll_lev = config.get_unroll_level();
-		int new_level = config.get_frame_level();
-		Assignment st2 = (config.get_state())->s();
-		// unroll in solver
-		//get unroll_lev prime of state
-		
-		solver_->set_assumption (st2,bad_, new_level, forward_,unroll_lev);
-		stats_->count_main_solver_SAT_time_start ();
-		bool res = solver_->solve_with_assumption ();
-		stats_->count_main_solver_SAT_time_end ();
-		return res;
-	}
+	
 	
 	State* Checker::get_new_state (const State* s,const int unroll_lev)
 	{
@@ -1071,8 +1064,9 @@ namespace car
 	    
 	    //get_previous (st, frame_level, res);
 	    
-	    Frame& frame = (frame_level+1 < F_.size ()) ? F_[frame_level+1] : frame_[frame_level-F_.size()];
-	    if (frame.size () == 0)  
+	    //Frame& frame = (frame_level+1 < F_.size ()) ? F_[frame_level+1] : frame_[frame_level-F_.size()];
+	    Frame& frame =  F_[frame_level+1];
+		if (frame_level >= F_.size()-1 || frame.size () == 0)  
 	    	return;
 	    	
 	    Cube& cu = frame[frame.size()-1];
@@ -1095,44 +1089,7 @@ namespace car
 	
 	//add the intersection of the last UC in frame_level+1 with the state \@ st to \@ st
 	void Checker::add_intersection_last_uc_in_frame_level_plus_one (Assignment& st, const int frame_level) {
-		/*
-	    std::vector<int> tmp;
-	    get_priority (st, frame_level, tmp);
-	    st.insert (st.begin (), tmp.begin (), tmp.end ());
-	    */
-	    /*
-	    Frame& frame = (frame_level+1 < F_.size ()) ? F_[frame_level+1] : frame_;
-	    if (frame.size () == 0)  
-	    	return;
-	    Cube& cu = frame[frame.size()-1];
-	    std::vector<int> tmp, tmp_st;
-	    tmp.reserve (st.size());
-	    tmp_st.reserve (st.size ());
-	    int j = 0;
-	    for (int i = 0; i < st.size (); ++ i) {
-	        if (j >= cu.size ()) 
-	            tmp_st.push_back (st[i]);
-	        else {
-	            if (abs(st[i]) < abs (cu[j])) {
-	                tmp.push_back (st[i]);
-	            }
-	            else {
-	                if (st[i] != cu[j])
-	                    tmp.push_back (st[i]);
-	                else
-	                    tmp_st.push_back (st[i]);
-	                ++ j;
-	            }
-	        }
-	    }
-	    
-	    for (int i = 0; i < tmp.size (); ++ i)
-	        tmp_st.push_back (tmp[i]);
-	    st = tmp_st;
-	    */
-	    //if(forward_)
-	    	//return;
-	    
+
 	    std::vector<int> prefix;
 	    if (inter_) 
 	    	get_priority (st, frame_level, prefix);	
