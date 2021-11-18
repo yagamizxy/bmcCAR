@@ -62,19 +62,21 @@ namespace car
 			int unroll_level_;
 		public:
 			Configuration(State* s,int frame_level,int unroll_level){
-				s_ = new State(s);
+				//s_ = new State(s);
+				s_ = s;
 				frame_level_ = frame_level;
 				unroll_level_ = unroll_level;
 			}
 			
 			
 			Configuration (const Configuration &config){
-				s_ = new State(config.get_state());
+				//s_ = new State(config.get_state());
+				s_ = config.get_state();
 				frame_level_ = config.get_frame_level();
 				unroll_level_ = config.get_unroll_level();
 			}
 			~Configuration (){
-							delete s_;
+							//delete s_;
 						}
 			inline int get_frame_level(){
 				return frame_level_;
@@ -309,7 +311,7 @@ namespace car
 			if (new_level+1 < cubes_.size ()) 
 				cubes_[new_level+1] = st3;
 			else
-				cube_ = st3;
+				cubes_.push_back(st3);
 		    }
 
 		return res;

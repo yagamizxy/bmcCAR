@@ -65,7 +65,7 @@
  		inline void print () { std::cout << latches () << std::endl;}
  		
  		void print_evidence (bool forward, std::ofstream&);
- 		
+
  		inline int depth () {return dep_;}
  		inline Assignment& s () {return s_;}
  		inline State* next () {return next_;}
@@ -98,6 +98,7 @@
  		inline bool is_dead () {return dead_;}
  		inline void set_added_to_dead_solver (bool val) {added_to_dead_solver_ = val;}
  		inline bool added_to_dead_solver () {return added_to_dead_solver_;}
+		inline void set_input(Cube& input){inputs_ = input;}
  	private:
  	//s_ contains all latches, but if the value of latch l is not cared, assign it to -1.
  		Assignment s_;

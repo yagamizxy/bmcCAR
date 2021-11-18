@@ -70,8 +70,10 @@ namespace car
    			else
     			out << "0" << endl;
     		out << "b" << i << endl;
-   			if (evidence_ && res)
-    			print_evidence (out);
+   			if (evidence_ && res){
+				print_evidence (out);
+			   }
+    			
     		out << "." << endl;
 	        car_finalization ();
 	        if (i == model_->num_outputs () - 1)
@@ -209,13 +211,21 @@ namespace car
 			if(is_sat(config)){
 
 				std::vector<State*> states = get_all_states(config); //states in order, the last is the new state not in config.framelevel
+				
 				for(int i = 0;i < states.size();++i){
+					// std::cout<<"state "<<i+1<<endl;
+					// std::cout<<states[i]->inputs()<<endl;
 					Configuration temp_c(states[i],config.get_frame_level()+states.size()-i-2,1);
 					configurations_.push_back(temp_c);
 					update_B_sequence(states[i]);
 				}
+				
 				if(config.get_frame_level() == 0) //exit should be reconsidered
+				{
+					//last_ = config.get_state();
 					return true;
+				}
+					
 			}
 			else{
 				configurations_.pop_back();
@@ -330,6 +340,7 @@ namespace car
 	}
 	Checker::~Checker ()
 	{
+		/*
 		if (init_ != NULL)
 		{
 			delete init_;
@@ -340,12 +351,13 @@ namespace car
 		    delete last_;
 		    last_ = NULL;
 		}
+		*/
 		//car_finalization ();
 	}
 	
 	void Checker::destroy_states ()
 	{    
-	    for (int i = 1; i < B_.size (); i ++)
+	    for (int i = 0; i < B_.size (); i ++)
 	    {
 	    	//cout << "B[" << i << "]:" <<endl;
 	        for (int j = 0; j < B_[i].size (); j ++)
@@ -385,6 +397,7 @@ namespace car
 	
 		
 	    F_.clear ();
+		configurations_.clear ();
 	    destroy_states ();
 	    if (solver_ != NULL) {
 	        delete solver_;
@@ -436,6 +449,9 @@ namespace car
 		std::vector<State*> v;
 		v.push_back(init_);
 		B_.push_back(v);
+
+		Cube& cu = init_->s();
+		cubes_.push_back (cu);
 	}
 	
 		
@@ -627,16 +643,23 @@ namespace car
 	std::vector<State*> Checker::get_all_states(Configuration& config){
 		int unroll_lev = config.get_unroll_level();
 		State* s = config.get_state();
-		std::vector<Cube> st_vec = solver_->get_state_vector (unroll_lev);
+		Cube first_input;
+		std::vector<Cube> st_vec = solver_->get_state_vector (unroll_lev,first_input);
 		std::vector<State*> res;
 		std::pair<Assignment, Assignment> pa = state_pair (st_vec[0]);
-		State* first_s = new State (s, pa.first, pa.second, forward_,false,1); //get the first 
+		State* first_s = new State (s, first_input, pa.second, forward_,false,1); //get the first 
 		res.push_back(first_s);
 		for (int ind = 1;ind < st_vec.size();++ind){
-			std::pair<Assignment, Assignment> pa = state_pair (st_vec[ind]);
-			State* new_s = new State (first_s, pa.first, pa.second, forward_,false,ind+1);
+			Cube input = pa.first;
+			pa = state_pair (st_vec[ind]);
+			State* new_s = new State (first_s, input, pa.second, forward_,false,ind+1);
 			res.push_back(new_s);
 			first_s = new_s;
+		}
+
+		if (config.get_frame_level() == 0){
+			last_ = res.back();
+			last_->set_last_inputs(pa.first);
 		}
 		
 		return res;
@@ -1098,7 +1121,9 @@ namespace car
 	    std::vector<int> tmp_st, tmp;
 	    tmp_st.reserve (st.size());
 	    tmp.reserve (st.size());
-	    Cube& cube = (frame_level+1 < cubes_.size ()) ? cubes_[frame_level+1] : cube_;
+	    //Cube& cube = (frame_level+1 < cubes_.size ()) ? cubes_[frame_level+1] : cube_;
+		if (frame_level+1 >= cubes_.size ()) return;
+		Cube& cube = cubes_[frame_level+1];
 	    if (cube.empty ()) {
 	        //cube = st;
 	        return;
@@ -1130,14 +1155,20 @@ namespace car
             st.insert (st.begin (), tmp_comm.begin(), tmp_comm.end ());
 	*/
 	}
-	
-		
 	void Checker::print_evidence (ofstream& out) {
 		if (forward_)
 			init_->print_evidence (forward_, out);
 		else
 			last_->print_evidence (forward_, out);
 	}
+		
+	// void Checker::print_evidence (ofstream& out) {
+	// 	out<<init_->latches()<<endl;
+	// 	for (int i = 0;i < configurations_.size();++i){
+	// 		State* s = configurations_[i].get_state();
+	// 		out<<s->inputs()<<endl;
+	// 	}	
+	// }
 
 	// void Checker::push_unrollpair_to_frame(){
 	// 	for (auto it = unroll_pair.begin();it != unroll_pair.end();++it){

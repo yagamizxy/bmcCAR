@@ -27,6 +27,7 @@
 #include <fstream>
 #include <signal.h>
 #include <assert.h>
+#include <string>
 using namespace std;
 using namespace car;
 
@@ -119,8 +120,8 @@ void check_aiger (int argc, char** argv)
    bool propagate = false;
    bool begin = false;
    bool end = true;
-   bool inter = false;
-   bool rotate = false;
+   bool inter = true;
+   bool rotate = true;
    int unroll_max = 1;  //control unroll level 
    
    string input;
@@ -139,14 +140,16 @@ void check_aiger (int argc, char** argv)
    			evidence = true;
       else if (strcmp (argv[i], "-ilock") == 0)
    			ilock = true;
-      else if (strcmp (argv[i], "-2") == 0)
-   			unroll_max = 2;
-      else if (strcmp (argv[i], "-3") == 0)
-   			unroll_max = 3;
-      else if (strcmp (argv[i], "-4") == 0)
-   			unroll_max = 4;
-      else if (strcmp (argv[i], "-5") == 0)
-   			unroll_max = 5;
+      else if (isdigit(argv[i][1])){
+        string tmp = argv[i];
+        unroll_max = stoi(tmp.substr(1));
+      }
+      // else if (strcmp (argv[i], "-3") == 0)
+   		// 	unroll_max = 3;
+      // else if (strcmp (argv[i], "-4") == 0)
+   		// 	unroll_max = 4;
+      // else if (strcmp (argv[i], "-5") == 0)
+   		// 	unroll_max = 5;
    		else if (strcmp (argv[i], "-h") == 0)
    			print_usage ();
    		else if (strcmp (argv[i], "-begin") == 0) {

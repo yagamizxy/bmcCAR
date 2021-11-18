@@ -114,10 +114,14 @@ namespace car
 		return model;
 	}
 	
-	std::vector<Cube> MainSolver::get_state_vector (int unroll_level)
+	std::vector<Cube> MainSolver::get_state_vector (int unroll_level,Cube& first_input)
 	{
 		Assignment model = get_model ();
-		std::vector<Cube> res = shrink_model_vector (model,unroll_level);
+		// std::cout<<"maxid:"<<model_->max_id()<<endl;
+		// std::cout<<"inputnumber:"<<model_->num_inputs()<<endl;
+		// std::cout<<"latchnum:"<<model_->num_latches()<<endl;
+		// car::print(model);
+		std::vector<Cube> res = shrink_model_vector (model,unroll_level,first_input);
 		return res;
 	}
 
@@ -239,8 +243,20 @@ namespace car
 		model = res;
 	}
 	
-	std::vector<Cube> MainSolver::shrink_model_vector (Assignment& model,int unroll_level)
+	std::vector<Cube> MainSolver::shrink_model_vector (Assignment& model,int unroll_level,Cube& first_input)
 	{
+		for (int i = 0; i < model_->num_inputs (); i ++)
+		{
+			if (i >= model.size ())
+			{//the value is DON'T CARE, so we just set to 0
+				first_input.push_back (0);
+			}
+			else{
+				// if(model[i] < 0) 
+				// 	cout<<model[i]<<endl;
+				first_input.push_back (model[i]);
+			}	
+		}
 		Frame res;
 		for(int lev = 1; lev <= unroll_level; ++lev){
 			Cube element;
