@@ -1,0 +1,21 @@
+#PBS -N car1
+#PBS -l nodes=1:ppn=1
+#PBS -j oe
+#PBS -t 0-4
+#PBS -l walltime=03:00:00
+cd $PBS_O_WORKDIR
+echo my job id is $PBS_JOBID | tee run.log
+echo run nodes is following: | tee -a run.log
+cat $PBS_NODEFILE | tee -a run.log
+echo begin time is `date` | tee -a run.log
+
+file_name_list=()
+for file in `cat ./gproflist`
+do
+        file_name_list=(${file_name_list[@]} $file)
+done
+
+timeout 2h ./simplecar -b -e -1 ../../case/${file_name_list[$PBS_ARRAYID]} ./
+gprof ./simplecar gmon.out > ./gout/${file_name_list[$PBS_ARRAYID]}.txt
+
+echo end time is `date` | tee -a run.log

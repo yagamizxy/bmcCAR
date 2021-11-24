@@ -97,6 +97,9 @@ namespace car
 			inline void set_frame_level(int level){
 				frame_level_ = level;
 			}
+			inline void print_config(){
+				std::cout<<s_<<" "<<frame_level_<<" "<<unroll_level_<<std::endl;
+			}
 	};
 
 

@@ -70,10 +70,17 @@ namespace car
 	void MainSolver::set_assumption (const Assignment& a,const int bad,const int frame_level, const bool forward,const int unroll_lev)
 	{
 		assumption_.clear ();
+		// if(unroll_lev > 1){
+		// 	for(int i = 2;i < max_unroll_level_;++i)
+		// 		assumption_push(get_unroll_flag(i));
+		// }
+		for(int i = 2;i <= unroll_lev;++i)
+			assumption_push(get_unroll_flag(i));
 		if (frame_level > 0)
 			assumption_push (flag_of (frame_level,unroll_lev));	
 		else if(frame_level == 0)
 			assumption_push(model_->prime(bad,unroll_lev));
+		
 		for (Assignment::const_iterator it = a.begin (); it != a.end (); it ++)
 		{
 			int id = *it;
@@ -85,24 +92,29 @@ namespace car
 			
 	}
 	void MainSolver::unroll_to_level(const int level){
-		for(int lev = current_unroll_level_+1; lev <= level; lev++){
+		
+		for(int lev = 2; lev <= level; lev++){
 
 			for (int i = 0; i < model_->outputs_start (); i ++){
 				vector<int> tmp = model_->clause_prime(i,lev);
+				tmp.push_back(-max_flag_);
 				add_clause (tmp);
 			}
 				
 			//outputs
 			for (int i = model_->outputs_start (); i < model_->latches_start (); i ++){
 				vector<int> tmp = model_->clause_prime(i,lev);
+				tmp.push_back(-max_flag_);
 				add_clause (tmp);
 			}
 			//latches
 			for (int i = model_->latches_start (); i < model_->size (); i ++){
 				vector<int> tmp = model_->clause_prime(i,lev);
+				tmp.push_back(-max_flag_);
 				add_clause (tmp);
 			}
-			add_unroll_level();
+			unroll_flags_.push_back(max_flag_++);
+			
 		}
 		
 	}

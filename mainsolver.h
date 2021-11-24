@@ -50,8 +50,7 @@ class MainSolver : public CARSolver
 		}
 		
 		void unroll_to_level(const int level);
-		
-		inline void add_unroll_level(){current_unroll_level_++;}
+		inline int get_unroll_flag(int& ind) {return unroll_flags_[ind-2];}
 		inline int get_unroll_level(){return current_unroll_level_;}
 
 		inline bool solve_with_assumption (const Assignment& st, const int p)
@@ -118,6 +117,8 @@ class MainSolver : public CARSolver
 		
 		int current_unroll_level_;
 		int max_unroll_level_;
+		std::vector<int> unroll_flags_; //flags for each unroll level
+		
 		//bool verbose_;
 		
 		//functions

@@ -202,14 +202,14 @@ namespace car
 		while(!configurations_.empty()) //stack non empty
 		{
 			Configuration config = configurations_.back();
-			
+			//config.print_config();
 			if (tried_before (config.get_state(),config.get_frame_level()+config.get_unroll_level() )){
 				configurations_.pop_back();
 				continue;
 			}
 
 			if(is_sat(config)){
-
+				//std::cout<<"is sat"<<endl;
 				std::vector<State*> states = get_all_states(config); //states in order, the last is the new state not in config.framelevel
 				
 				for(int i = 0;i < states.size();++i){
