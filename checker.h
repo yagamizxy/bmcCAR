@@ -98,7 +98,7 @@ namespace car
 				frame_level_ = level;
 			}
 			inline void print_config(){
-				std::cout<<s_<<" "<<frame_level_<<" "<<unroll_level_<<std::endl;
+				std::cout<<"state: "<<s_<<" frame: "<<frame_level_<<" unroll: "<<unroll_level_<<std::endl;
 			}
 	};
 
@@ -106,7 +106,7 @@ namespace car
 	class Checker 
 	{
 	public:
-		Checker (Model* model, Statistics& stats, std::ofstream* dot, bool forward = true, bool evidence = false, bool partial = false, bool propagate = false, bool begin = false, bool end = true, bool inter = true, bool rotate = false, bool verbose = false, bool minimal_uc = false,bool ilock = false,int unroll_max = 1);
+		Checker (Model* model, Statistics& stats, std::ofstream* dot, bool forward = true, bool evidence = false, bool partial = false, bool propagate = false, bool begin = false, bool end = true, bool inter = true, bool rotate = false, bool verbose = false, bool minimal_uc = false,bool ilock = false,int unroll_max = 1,bool debug = false);
 		~Checker ();
 		
 		bool check (std::ofstream&);
@@ -129,6 +129,7 @@ namespace car
 		bool propagate_;
 		bool ilock_;
 		int unroll_max_;
+		bool debug_;
 		//std::vector<std::pair<Cube, int>> unroll_pair; //store the unroll uc and uc framelevel
 		//new flags for reorder and state enumeration
 		bool begin_, end_;  // for state enumeration
@@ -155,7 +156,7 @@ namespace car
 		Bsequence B_;
 		//Frame frame_;   //to store the frame willing to be added in F_ in one step
 		std::vector<Frame> frame_; //mutiply steps
-		
+		std::vector<Cube> inv_cube; //store the uc can't transist beyond itself
 	    
 	    void get_previous (const Assignment& st, const int frame_level, std::vector<int>& res);
 	    void get_priority (const Assignment& st, const int frame_level, std::vector<int>& res);
@@ -224,7 +225,7 @@ namespace car
 		//inline functions
 		inline bool is_initial (Cube& c){return init_->imply (c);}
 		inline void create_inv_solver (){
-			inv_solver_ = new InvSolver (model_, verbose_);
+			inv_solver_ = new InvSolver (model_);
 			add_dead_to_inv_solver ();
 		}
 		inline void delete_inv_solver (){
@@ -318,6 +319,22 @@ namespace car
 		    }
 
 		return res;
+	}
+
+	inline bool uc_inv_check(Cube& cu){
+		//check whether cu is a inv
+		int inv_flag = inv_solver_->get_flag();
+		inv_solver_->set_assumption(cu,inv_flag);
+		Cube tmp;
+		tmp.push_back(-inv_flag);
+		for(auto it = cu.begin();it != cu.end();++it)
+			tmp.push_back(-model_->prime(*it, 1));
+		inv_solver_->add_clause(tmp);
+		stats_->count_main_solver_SAT_time_start ();
+		bool res = inv_solver_->solve_with_assumption ();
+		stats_->count_main_solver_SAT_time_end ();
+		return !res;
+		
 	}
 
 	    inline bool solver_solve_with_assumption (const Assignment& st, const int p){

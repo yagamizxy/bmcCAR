@@ -202,14 +202,37 @@ namespace car
 		while(!configurations_.empty()) //stack non empty
 		{
 			Configuration config = configurations_.back();
-			//config.print_config();
+			if(debug_){
+				std::cout<<"------------"<<endl;
+				config.print_config();
+			}
+				
 			if (tried_before (config.get_state(),config.get_frame_level()+config.get_unroll_level() )){
 				configurations_.pop_back();
 				continue;
 			}
+			bool cube_inv_flag = false;
+			for(auto it = inv_cube.begin();it != inv_cube.end();++it){
+				Cube config_s = config.get_state()->s();
+				if(car::imply(config_s, *it)){
+					if(debug_){
+					std::cout<<"pop back state from cube_inv"<<endl;
+					}
+					cube_inv_flag = true;
+					break;
+				}
+			}
+			if(cube_inv_flag){
+				configurations_.pop_back();
+				continue;
+			}
+				
 
 			if(is_sat(config)){
-				//std::cout<<"is sat"<<endl;
+				if(debug_){
+					std::cout<<"is sat"<<endl;
+				}
+					
 				std::vector<State*> states = get_all_states(config); //states in order, the last is the new state not in config.framelevel
 				
 				for(int i = 0;i < states.size();++i){
@@ -229,7 +252,7 @@ namespace car
 			}
 			else{
 				configurations_.pop_back();
-				update_F_sequence(config); 
+				update_F_sequence(config); //need add uc invariant check and then block inv
 				if (safe_reported()) return false;
 				int unroll_level = config.get_unroll_level();
 				int frame_level = config.get_frame_level();
@@ -304,7 +327,7 @@ namespace car
 		
 	//////////////helper functions/////////////////////////////////////////////
 
-	Checker::Checker (Model* model, Statistics& stats, ofstream* dot, bool forward, bool evidence, bool partial, bool propagate, bool begin, bool end, bool inter, bool rotate, bool verbose, bool minimal_uc, bool ilock,int unroll_max)
+	Checker::Checker (Model* model, Statistics& stats, ofstream* dot, bool forward, bool evidence, bool partial, bool propagate, bool begin, bool end, bool inter, bool rotate, bool verbose, bool minimal_uc, bool ilock,int unroll_max,bool debug)
 	{
 	    
 		model_ = model;
@@ -322,6 +345,7 @@ namespace car
 		minimal_uc_ = minimal_uc;
 		ilock_ = ilock;
 		unroll_max_ = unroll_max;
+		debug_ = debug;
 		evidence_ = evidence;
 		verbose_ = verbose;
 		minimal_update_level_ = F_.size ()-1;
@@ -376,6 +400,7 @@ namespace car
 	void Checker::car_initialization ()
 	{
 	    solver_ = new MainSolver (model_, stats_, verbose_);
+		inv_solver_ = new InvSolver (model_);
 	    if (forward_){
 	    	lift_ = new MainSolver (model_, stats_, verbose_);
 	    	dead_solver_ = new MainSolver (model_, stats_, verbose_);
@@ -746,7 +771,28 @@ namespace car
 		
 		bool constraint = false;
 		Cube cu = solver_->get_conflict (forward_, minimal_uc_, constraint, unroll_lev);
-		
+
+		if(debug_){
+			cout<<"add uc:";
+			car::print(cu);
+		}
+		if(uc_inv_check(cu)){
+			Cube new_cu = inv_solver_->get_conflict();
+			if(debug_){
+				cout<<"find inv uc:";
+				car::print(new_cu);
+			}
+			inv_cube.push_back(new_cu);
+			solver_->CARSolver::add_clause_from_cube(new_cu);
+			for(int i = 1;i <= unroll_max_;++i){
+				Cube tmp;
+				for(auto it = new_cu.begin();it != new_cu.end();++it){
+					tmp.push_back(model_->prime(*it,i));
+				}
+				solver_->CARSolver::add_clause_from_cube(tmp);
+			}
+			return ;
+		}	
 	
 		
 		if(cu.empty()){

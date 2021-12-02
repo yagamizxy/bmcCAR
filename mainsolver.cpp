@@ -98,6 +98,7 @@ namespace car
 			for (int i = 0; i < model_->outputs_start (); i ++){
 				vector<int> tmp = model_->clause_prime(i,lev);
 				tmp.push_back(-max_flag_);
+				//tmp.insert(tmp.begin(),-max_flag_);
 				add_clause (tmp);
 			}
 				
@@ -105,12 +106,14 @@ namespace car
 			for (int i = model_->outputs_start (); i < model_->latches_start (); i ++){
 				vector<int> tmp = model_->clause_prime(i,lev);
 				tmp.push_back(-max_flag_);
+				//tmp.insert(tmp.begin(),-max_flag_);
 				add_clause (tmp);
 			}
 			//latches
 			for (int i = model_->latches_start (); i < model_->size (); i ++){
 				vector<int> tmp = model_->clause_prime(i,lev);
 				tmp.push_back(-max_flag_);
+				//tmp.insert(tmp.begin(),-max_flag_);
 				add_clause (tmp);
 			}
 			unroll_flags_.push_back(max_flag_++);
