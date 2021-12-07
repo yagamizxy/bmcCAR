@@ -60,6 +60,7 @@ namespace car
 			State* s_;
 			int frame_level_;
 			int unroll_level_;
+			bool loop_flag_;
 		public:
 			Configuration(State* s,int frame_level,int unroll_level){
 				//s_ = new State(s);
@@ -74,6 +75,7 @@ namespace car
 				s_ = config.get_state();
 				frame_level_ = config.get_frame_level();
 				unroll_level_ = config.get_unroll_level();
+				
 			}
 			~Configuration (){
 							//delete s_;
@@ -106,7 +108,7 @@ namespace car
 	class Checker 
 	{
 	public:
-		Checker (Model* model, Statistics& stats, std::ofstream* dot, bool forward = true, bool evidence = false, bool partial = false, bool propagate = false, bool begin = false, bool end = true, bool inter = true, bool rotate = false, bool verbose = false, bool minimal_uc = false,bool ilock = false,int unroll_max = 1,bool debug = false);
+		Checker (Model* model, Statistics& stats, std::ofstream* dot, bool forward, bool evidence, bool partial, bool propagate, bool begin, bool end, bool inter, bool rotate, bool verbose, bool minimal_uc,bool ilock,int unroll_max,bool debug,int loop_max);
 		~Checker ();
 		
 		bool check (std::ofstream&);
@@ -120,7 +122,7 @@ namespace car
 		}
 	protected:
 		std::vector<Configuration> configurations_;
-		int get_config_smallest_frame_level(int loop_position);
+		int get_config_smallest_frame_level();
 		//flags 
 		bool forward_;
 		bool partial_state_;
@@ -151,6 +153,7 @@ namespace car
 
 		Model* model_;
 		MainSolver *solver_;
+		MainSolver *unroll_solver_;  //sat solver for unrolling 
 		MainSolver *lift_, *dead_solver_;
 		StartSolver *start_solver_;
 		InvSolver *inv_solver_;
@@ -302,13 +305,24 @@ namespace car
 		int new_level = config.get_frame_level();
 		Assignment st2 = (config.get_state())->s();
 		add_intersection_last_uc_in_frame_level_plus_one (st2, new_level);
-		// unroll in solver
-		//get unroll_lev prime of state
-		
-		solver_->set_assumption (st2,bad_, new_level, forward_,unroll_lev);
+
+		//set assumption
+		if(unroll_lev == 1)
+			solver_->set_assumption (st2,bad_, new_level, forward_);
+		else{
+			unroll_solver_->push_frame_to_unroll_solver(F_[new_level],new_level,unroll_lev);
+			unroll_solver_->set_assumption (st2,bad_, new_level, forward_,unroll_lev);
+		}
+			
+		//solve
 		stats_->count_main_solver_SAT_time_start ();
-		bool res = solver_->solve_with_assumption ();
+		bool res;
+		if(unroll_lev == 1)
+			res = solver_->solve_with_assumption ();
+		else
+			res = unroll_solver_->solve_with_assumption ();
 		stats_->count_main_solver_SAT_time_end ();
+		//get recent cube
 		if (!res) {
 			Assignment st3; 
 			st3.reserve (model_->num_latches());

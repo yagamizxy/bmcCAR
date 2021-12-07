@@ -28,20 +28,26 @@
 #include "data_structure.h"
 #include "model.h"
 #include "statistics.h"
+#include <utility>
 #include <vector>
+#include <map>
 #include <assert.h>
 #include <iostream>
 
 namespace car{
 
+typedef std::pair<int,int> Frame_unroll_pair;
+
 class MainSolver : public CARSolver 
 {
 	public:
 		MainSolver (Model*, Statistics* stats, const bool verbose = false);
+		MainSolver (Model* m, Statistics* stats, const bool verbose, const bool unroll);
 		~MainSolver (){}
 		
 		//public funcitons
-		void set_assumption (const Assignment&, const int bad,const int frame_level, const bool forward,const int unroll_lev = 1);
+		void set_assumption (const Assignment&, const int bad,const int frame_level, const bool forward);
+		void set_assumption (const Assignment&, const int bad,const int frame_level, const bool forward,const int unroll_lev);
 		void set_assumption (const Assignment&, const int);
 		void set_assumption (const Assignment& st){
 			assumption_.clear ();
@@ -85,8 +91,10 @@ class MainSolver : public CARSolver
 		
 		void add_new_frame (const Frame& frame, const int frame_level, const bool forward);
 		//overload
-		void add_clause_from_cube (const Cube& cu, const int frame_level, const bool forward_,int unroll_level=1);
-		
+		void add_clause_from_cube (const Cube& cu, const int frame_level, const bool forward_);
+
+		void push_frame_to_unroll_solver(const Frame& frame,const int& frame_level,const int& unroll_level);
+
 		bool solve_with_assumption_for_temporary (Cube& s, int frame_level, bool forward, Cube& tmp_block);
 		
 		inline void update_constraint (Cube& cu)
@@ -94,7 +102,6 @@ class MainSolver : public CARSolver
 		    CARSolver::add_clause_from_cube (cu);
 		}
 		
-		inline void clear_frame_flags () {frame_flags_.clear ();}
 		
 		inline int new_flag (){
 			return max_flag_++;
@@ -107,7 +114,10 @@ class MainSolver : public CARSolver
 		//members
 		int max_flag_;
 		//std::vector<int> frame_flags_;
-		std::vector<Cube> frame_flags_;
+		//std::vector<Cube> frame_flags_; //frame unroll flag
+
+		std::vector<int> frame_flag_;
+		std::map<Frame_unroll_pair,int> frame_unroll_flag_map_;
 
 		int init_flag_, dead_flag_;
 		
@@ -123,21 +133,30 @@ class MainSolver : public CARSolver
 		
 		//functions
 		
-		
-		
-		inline int flag_of (const unsigned frame_level,const int unroll_level=1) 
+		inline int flag_of (const unsigned frame_level) 
 		{
 		    assert (frame_level > 0);
-			while (frame_level > frame_flags_.size ())
+			while (frame_level > frame_flag_.size ())
 			{
-				Cube tmp;
-				for(int i=0;i<max_unroll_level_;++i)
-					tmp.push_back(max_flag_++);
-				frame_flags_.push_back (tmp);
+				frame_flag_.push_back(max_flag_++);
 			}
-	        
-			return frame_flags_[frame_level-1][unroll_level-1];
+			return frame_flag_[frame_level-1];
 		}
+		
+		
+		// inline int flag_of (const unsigned frame_level,const int unroll_level=1) 
+		// {
+		//     assert (frame_level > 0);
+		// 	while (frame_level > frame_flags_.size ())
+		// 	{
+		// 		Cube tmp;
+		// 		for(int i=0;i<max_unroll_level_;++i)
+		// 			tmp.push_back(max_flag_++);
+		// 		frame_flags_.push_back (tmp);
+		// 	}
+	        
+		// 	return frame_flags_[frame_level-1][unroll_level-1];
+		// }
 		void shrink_model (Assignment& model, const bool forward, const bool partial);
 		std::vector<Cube> shrink_model_vector (Assignment& model,int unroll_level,Cube& first_input);
 		void try_reduce (Cube& cu);

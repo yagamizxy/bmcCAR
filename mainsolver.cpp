@@ -40,6 +40,27 @@ namespace car
 	    stats_ = stats;
 		model_ = m;
 		current_unroll_level_ = 1; //default unrolling level is 1
+		max_unroll_level_ = 1;
+		init_flag_ = m->max_id()*2 + 1;
+		dead_flag_ = m->max_id ()*2 + 2;
+		max_flag_ = m->max_id()*2 + 3;
+	    //constraints
+		for (int i = 0; i < m->outputs_start (); i ++)
+			add_clause (m->element (i));
+		//outputs
+		for (int i = m->outputs_start (); i < m->latches_start (); i ++)
+			add_clause (m->element (i));
+		//latches
+		for (int i = m->latches_start (); i < m->size (); i ++)
+		    add_clause (m->element (i));
+	}
+
+	MainSolver::MainSolver (Model* m, Statistics* stats, const bool verbose,const bool unroll) 
+	{
+	    verbose_ = verbose;
+	    stats_ = stats;
+		model_ = m;
+		current_unroll_level_ = 1; //default unrolling level is 1
 		max_unroll_level_ = m->get_max_unroll();
 		init_flag_ = m->max_id()*(max_unroll_level_+1) + 1;
 		dead_flag_ = m->max_id ()*(max_unroll_level_+1) + 2;
@@ -67,13 +88,30 @@ namespace car
 		}		
 	}
 	
+	void MainSolver::set_assumption (const Assignment& a,const int bad,const int frame_level, const bool forward)
+	{
+		assumption_.clear ();
+		
+		if (frame_level > 0)
+			assumption_push (frame_flag_[frame_level-1]);	
+		else if(frame_level == 0)
+			assumption_push(model_->prime(bad,1));
+		//frame prime flag
+		
+		for (Assignment::const_iterator it = a.begin (); it != a.end (); it ++)
+		{
+			int id = *it;
+			if (forward)
+				assumption_push (model_->prime (id,1));
+			else
+				assumption_push (id);
+		}
+			
+	}
+
 	void MainSolver::set_assumption (const Assignment& a,const int bad,const int frame_level, const bool forward,const int unroll_lev)
 	{
 		assumption_.clear ();
-		// if(unroll_lev > 1){
-		// 	for(int i = 2;i < max_unroll_level_;++i)
-		// 		assumption_push(get_unroll_flag(i));
-		// }
 		//prime flag
 		for(int i = 2;i <= unroll_lev;++i)
 			assumption_push(get_unroll_flag(i));
@@ -81,16 +119,13 @@ namespace car
 			assumption_push(-get_unroll_flag(i));
 
 		//frame prime flag
-		if (frame_level > 0)
-			assumption_push (flag_of (frame_level,unroll_lev));	
+		if (frame_level > 0){
+			Frame_unroll_pair curr_pair(frame_level,unroll_lev);
+			assumption_push(frame_unroll_flag_map_[curr_pair]);
+		}
 		else if(frame_level == 0)
 			assumption_push(model_->prime(bad,unroll_lev));
-		for(int i = 0;i < frame_flags_.size();++i){
-			for(int j = 0;j < max_unroll_level_;++j){
-				if((i != frame_level-1) || (j != unroll_lev-1) )
-					assumption_push(-frame_flags_[i][j]);
-			}
-		}
+
 		for (Assignment::const_iterator it = a.begin (); it != a.end (); it ++)
 		{
 			int id = *it;
@@ -196,9 +231,9 @@ namespace car
 		}
 	}
 	
-	void MainSolver::add_clause_from_cube (const Cube& cu, const int frame_level, const bool forward,int unroll_level)
+	void MainSolver::add_clause_from_cube (const Cube& cu, const int frame_level, const bool forward)
 	{
-		int flag = flag_of (frame_level,unroll_level);//flag_of (frame_level,unroll_level)
+		int flag = flag_of (frame_level);
 		// cout<<"flag: "<<flag<<endl;
 		// cout<<"frame_level: "<<frame_level<<endl;
 		// cout<<"unroll_level: "<<unroll_level<<endl;
@@ -207,11 +242,36 @@ namespace car
 		cl.push_back (-flag);
 		for (int i = 0; i < cu.size (); i ++)
 		{
-			cl.push_back (-model_->prime (cu[i],unroll_level));
+			cl.push_back (-model_->prime (cu[i],1));
 		}
 		add_clause (cl);
 	}
-	
+
+	void MainSolver::push_frame_to_unroll_solver(const Frame& frame,const int& frame_level,const int& unroll_level)
+	{
+		Frame_unroll_pair curr_pair(frame_level,unroll_level);
+		if (frame_unroll_flag_map_.find(curr_pair) == frame_unroll_flag_map_.end())
+		{
+			//push the unroll_level prime of F_[frame_level] to unroll_solver_ with flag
+			
+			for (int i = 0; i < frame.size (); i ++)
+			{
+				const Cube& cu = frame[i];
+				vector<int> cl;
+				cl.push_back (-max_flag_);
+				for (int i = 0; i < cu.size (); i ++)
+				{
+					cl.push_back (-model_->prime (cu[i],unroll_level));
+				}
+				add_clause (cl);
+			}
+			//push flag to map 
+			frame_unroll_flag_map_[curr_pair] = max_flag_++;
+		}
+		return;
+		
+	}
+
 	void MainSolver::shrink_model (Assignment& model, const bool forward, const bool partial)
 	{
 	    Assignment res;
