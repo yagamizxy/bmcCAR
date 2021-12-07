@@ -120,6 +120,7 @@ namespace car
 		}
 	protected:
 		std::vector<Configuration> configurations_;
+		int get_config_smallest_frame_level(int loop_position);
 		//flags 
 		bool forward_;
 		bool partial_state_;
@@ -130,6 +131,7 @@ namespace car
 		bool ilock_;
 		int unroll_max_;
 		bool debug_;
+		int loop_count_max_;
 		//std::vector<std::pair<Cube, int>> unroll_pair; //store the unroll uc and uc framelevel
 		//new flags for reorder and state enumeration
 		bool begin_, end_;  // for state enumeration
@@ -325,11 +327,13 @@ namespace car
 		//check whether cu is a inv
 		int inv_flag = inv_solver_->get_flag();
 		inv_solver_->set_assumption(cu,inv_flag);
+		//add clause
 		Cube tmp;
 		tmp.push_back(-inv_flag);
 		for(auto it = cu.begin();it != cu.end();++it)
 			tmp.push_back(-model_->prime(*it, 1));
 		inv_solver_->add_clause(tmp);
+		//solve
 		stats_->count_main_solver_SAT_time_start ();
 		bool res = inv_solver_->solve_with_assumption ();
 		stats_->count_main_solver_SAT_time_end ();

@@ -74,13 +74,23 @@ namespace car
 		// 	for(int i = 2;i < max_unroll_level_;++i)
 		// 		assumption_push(get_unroll_flag(i));
 		// }
+		//prime flag
 		for(int i = 2;i <= unroll_lev;++i)
 			assumption_push(get_unroll_flag(i));
+		for(int i = unroll_lev+1;i <= max_unroll_level_;++i)
+			assumption_push(-get_unroll_flag(i));
+
+		//frame prime flag
 		if (frame_level > 0)
 			assumption_push (flag_of (frame_level,unroll_lev));	
 		else if(frame_level == 0)
 			assumption_push(model_->prime(bad,unroll_lev));
-		
+		for(int i = 0;i < frame_flags_.size();++i){
+			for(int j = 0;j < max_unroll_level_;++j){
+				if((i != frame_level-1) || (j != unroll_lev-1) )
+					assumption_push(-frame_flags_[i][j]);
+			}
+		}
 		for (Assignment::const_iterator it = a.begin (); it != a.end (); it ++)
 		{
 			int id = *it;
