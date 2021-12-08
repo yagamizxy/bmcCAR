@@ -118,7 +118,7 @@ class MainSolver : public CARSolver
 
 		std::vector<int> frame_flag_;
 		std::map<Frame_unroll_pair,int> frame_unroll_flag_map_;
-
+		std::map<Frame_unroll_pair,int> frame_unroll_level_map_; // <frame,unroll> has add how many cubes in frame
 		int init_flag_, dead_flag_;
 		
 		Model* model_;

@@ -204,7 +204,7 @@ namespace car
 		bool loop_flag = false;
 		while(!configurations_.empty()) //stack non empty
 		{
-		
+			if(loop_count_max_ > 0){
 			if (loop_count >= loop_count_max_){
 				//get smallest visited frame level
 				int current_level = get_config_smallest_frame_level();
@@ -232,6 +232,7 @@ namespace car
 			}
 			else 
 				loop_count++;
+			}
 
 			Configuration config = configurations_.back();
 			if(debug_){
@@ -455,7 +456,7 @@ namespace car
 	void Checker::car_initialization ()
 	{
 	    solver_ = new MainSolver (model_, stats_, verbose_);
-		unroll_solver_ = new MainSolver (model_, stats_, verbose_);
+		unroll_solver_ = new MainSolver (model_, stats_, verbose_,true);
 		inv_solver_ = new InvSolver (model_);
 	    if (forward_){
 	    	lift_ = new MainSolver (model_, stats_, verbose_);

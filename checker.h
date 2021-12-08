@@ -101,6 +101,7 @@ namespace car
 			}
 			inline void print_config(){
 				std::cout<<"state: "<<s_<<" frame: "<<frame_level_<<" unroll: "<<unroll_level_<<std::endl;
+				//car::print(s_->s());
 			}
 	};
 

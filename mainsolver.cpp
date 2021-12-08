@@ -267,6 +267,25 @@ namespace car
 			}
 			//push flag to map 
 			frame_unroll_flag_map_[curr_pair] = max_flag_++;
+			frame_unroll_level_map_[curr_pair] = frame.size();
+		}
+		else{
+			if(frame.size() > frame_unroll_level_map_[curr_pair]){
+				int flag = frame_unroll_flag_map_[curr_pair];
+				for (int i = frame_unroll_level_map_[curr_pair] - 1; i < frame.size (); i ++)
+				{
+					const Cube& cu = frame[i];
+					vector<int> cl;
+					cl.push_back (-flag);
+					for (int i = 0; i < cu.size (); i ++)
+					{
+						cl.push_back (-model_->prime (cu[i],unroll_level));
+					}
+					add_clause (cl);
+				}
+				frame_unroll_level_map_[curr_pair] = frame.size();
+			}
+
 		}
 		return;
 		
