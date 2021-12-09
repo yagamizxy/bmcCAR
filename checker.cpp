@@ -195,7 +195,13 @@ namespace car
 	{
 		if (tried_before (s, loop_index+1))
 			return false;
-		
+		if (loop_delete_state_set_.find(s) != loop_delete_state_set_.end()){
+			if(debug_){
+				std::cout<<"return from delete set"<<endl;
+			}
+			return false;
+		}
+			
 		Configuration c(s,(loop_index),1);
 		assert(configurations_.empty());
 		configurations_.push_back(c);
@@ -218,12 +224,12 @@ namespace car
 							std::cout<<"skip start"<<endl;
 							std::cout<<"skip state: "<<configurations_[0].get_state();
 							std::cout<<" current frame: "<<configurations_[0].get_frame_level()<<" ,smallest frame: "<<smallest_level<<endl; 
-							loop_flag = true;
 						}
-						
+						loop_flag = true;
 						State* s(configurations_[0].get_state());
-						//if should unroll level is smaller than unroll_max
+						push_to_delete_set();  //put states in configurations_ and their pre_states to set
 						configurations_.clear();
+						//need remove those states in B_ and their sub-states
 						Configuration c(s,smallest_level-1,should_unroll_level);
 						configurations_.push_back(c);
 					}
@@ -324,6 +330,16 @@ namespace car
 		return level;
 	}
 	
+	void Checker::push_to_delete_set(){
+		for(int i = 0;i < configurations_.size();++i){
+			State* current_s = configurations_[i].get_state();
+			while(current_s->pre() != NULL){
+				loop_delete_state_set_.insert(current_s);
+				current_s = current_s->pre();
+			}
+		}
+	}
+
 	/*************propagation****************/
 	bool Checker::propagate (){
 		//int start = forward_ ? (minimal_update_level_ == 0 ? 1 : minimal_update_level_) : minimal_update_level_;
@@ -841,8 +857,8 @@ namespace car
 		else
 		 	cu = unroll_solver_->get_conflict (forward_, minimal_uc_, constraint, unroll_lev);
 		if(debug_){
-			cout<<"add uc:";
-			car::print(cu);
+			cout<<"add uc:"<<endl;
+			//car::print(cu);
 		}
 		// if(uc_inv_check(cu)){
 		// 	Cube new_cu = inv_solver_->get_conflict();

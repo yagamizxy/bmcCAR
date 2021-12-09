@@ -34,6 +34,7 @@
 #include "statistics.h"
 #include <fstream>
 #include <algorithm>
+#include <set>
 
 #define MAX_SOLVER_CALL 500
 #define MAX_TRY 4
@@ -135,6 +136,7 @@ namespace car
 		int unroll_max_;
 		bool debug_;
 		int loop_count_max_;
+
 		//std::vector<std::pair<Cube, int>> unroll_pair; //store the unroll uc and uc framelevel
 		//new flags for reorder and state enumeration
 		bool begin_, end_;  // for state enumeration
@@ -175,6 +177,7 @@ namespace car
 	    Cube comm_; 
 	    std::vector<Cube> deads_;
 	    bool dead_flag_;
+		std::set<State*> loop_delete_state_set_;
 		
 		bool safe_reported_;  //true means ready to return SAFE
 		//functions
@@ -200,7 +203,7 @@ namespace car
 		int get_new_level (const State *s, const int frame_level);
 		void push_to_frame (Cube& cu, const int frame_level,int unroll_lev=1);
 		bool tried_before (const State* s, const int frame_level);
-		
+		void push_to_delete_set();
 		
 		State* enumerate_start_state ();
 		State* get_new_start_state ();
