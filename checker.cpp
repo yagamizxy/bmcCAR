@@ -195,7 +195,7 @@ namespace car
 	{
 		if (tried_before (s, loop_index+1))
 			return false;
-		if (loop_delete_state_set_.find(s) != loop_delete_state_set_.end()){
+		if (s->get_skip_delete()){
 			if(debug_){
 				std::cout<<"return from delete set"<<endl;
 			}
@@ -208,6 +208,7 @@ namespace car
 		int loop_count = 0;
 		int smallest_level_historty = loop_index; // record the smallest frame level ever 
 		bool loop_flag = false;
+		std::set<State*> delete_set;
 		while(!configurations_.empty()) //stack non empty
 		{
 			if(loop_count_max_ > 0){
@@ -217,6 +218,9 @@ namespace car
 				int smallest_level = (smallest_level_historty < current_level)?smallest_level_historty:current_level;
 				smallest_level_historty = smallest_level;
 				if(smallest_level > 0){
+					for(auto it = delete_set.begin();it != delete_set.end();++it)
+						(*it)->set_skip_delete(true); //mark delete
+					
 					int should_unroll_level = configurations_[0].get_frame_level() - smallest_level + 2;
 					if(should_unroll_level <= unroll_max_){
 						if(debug_){
@@ -233,7 +237,12 @@ namespace car
 						Configuration c(s,smallest_level-1,should_unroll_level);
 						configurations_.push_back(c);
 					}
+					//should conside the case when should_unroll_level > unroll_max_,maybe can set should_unroll_level to unroll_max_ 
 				}
+				else {
+					delete_set.clear();
+				}
+				
 				loop_count = 0;
 			}
 			else 
@@ -275,6 +284,8 @@ namespace car
 					Configuration temp_c(states[i],config.get_frame_level()+states.size()-i-2,1);
 					configurations_.push_back(temp_c);
 					update_B_sequence(states[i]);
+					delete_set.insert(states[i]);
+					//states[i]->set_skip_delete(true); //mark delete 
 				}
 				if(debug_){
 					std::cout<<"is sat"<<endl;
@@ -309,11 +320,13 @@ namespace car
 					configurations_.push_back(config);
 				}	
 				if(loop_flag){
-					loop_flag = false;	
+					loop_flag = false;
+					if(config.get_state()->depth() > 0)
+						config.get_state()->set_skip_delete(true); //if config unroll not work, delete config	
 				}
 			}
 		}
-		
+		delete_set.clear();
 		return false;
 		
 	}
@@ -334,7 +347,8 @@ namespace car
 		for(int i = 0;i < configurations_.size();++i){
 			State* current_s = configurations_[i].get_state();
 			while(current_s->pre() != NULL){
-				loop_delete_state_set_.insert(current_s);
+				//loop_delete_state_set_.insert(current_s);
+				current_s->set_skip_delete(true);
 				current_s = current_s->pre();
 			}
 		}
