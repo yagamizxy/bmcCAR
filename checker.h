@@ -61,7 +61,6 @@ namespace car
 			State* s_;
 			int frame_level_;
 			int unroll_level_;
-			bool loop_flag_;
 		public:
 			Configuration(State* s,int frame_level,int unroll_level){
 				//s_ = new State(s);

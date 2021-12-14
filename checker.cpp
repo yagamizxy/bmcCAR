@@ -197,7 +197,7 @@ namespace car
 			return false;
 		if (s->get_skip_delete()){
 			if(debug_){
-				std::cout<<"return from delete set"<<endl;
+				std::cout<<"delete state: "<<s<<endl;
 			}
 			return false;
 		}
@@ -222,22 +222,22 @@ namespace car
 						(*it)->set_skip_delete(true); //mark delete
 					
 					int should_unroll_level = configurations_[0].get_frame_level() - smallest_level + 2;
-					if(should_unroll_level <= unroll_max_){
-						if(debug_){
-							std::cout<<"------------"<<endl;
-							std::cout<<"skip start"<<endl;
-							std::cout<<"skip state: "<<configurations_[0].get_state();
-							std::cout<<" current frame: "<<configurations_[0].get_frame_level()<<" ,smallest frame: "<<smallest_level<<endl; 
-						}
-						loop_flag = true;
-						State* s(configurations_[0].get_state());
-						push_to_delete_set();  //put states in configurations_ and their pre_states to set
-						configurations_.clear();
-						//need remove those states in B_ and their sub-states
-						Configuration c(s,smallest_level-1,should_unroll_level);
-						configurations_.push_back(c);
+					
+					if(debug_){
+						std::cout<<"------------"<<endl;
+						std::cout<<"skip start"<<endl;
+						std::cout<<"skip state: "<<configurations_[0].get_state();
+						std::cout<<" current frame: "<<configurations_[0].get_frame_level()<<" ,smallest frame: "<<smallest_level<<endl; 
 					}
-					//should conside the case when should_unroll_level > unroll_max_,maybe can set should_unroll_level to unroll_max_ 
+					loop_flag = true;
+					State* s(configurations_[0].get_state());
+					//push_to_delete_set();  //put states in configurations_ and their pre_states to set
+					configurations_.clear();
+					int skip_unroll = (should_unroll_level <= unroll_max_)?should_unroll_level:unroll_max_;
+					int skip_frame = (should_unroll_level <= unroll_max_)?smallest_level-1:configurations_[0].get_frame_level()-unroll_max_+1;
+					Configuration c(s,skip_frame,skip_unroll);
+					
+					configurations_.push_back(c);
 				}
 				else {
 					delete_set.clear();
@@ -285,7 +285,7 @@ namespace car
 					configurations_.push_back(temp_c);
 					update_B_sequence(states[i]);
 					delete_set.insert(states[i]);
-					//states[i]->set_skip_delete(true); //mark delete 
+					
 				}
 				if(debug_){
 					std::cout<<"is sat"<<endl;
