@@ -214,35 +214,40 @@ namespace car
 			if(loop_count_max_ > 0){
 			if (loop_count >= loop_count_max_){
 				//get smallest visited frame level
-				int current_level = get_config_smallest_frame_level();
-				int smallest_level = (smallest_level_historty < current_level)?smallest_level_historty:current_level;
-				smallest_level_historty = smallest_level;
-				if(smallest_level > 0){
-					for(auto it = delete_set.begin();it != delete_set.end();++it)
-						(*it)->set_skip_delete(true); //mark delete
-					
-					int should_unroll_level = configurations_[0].get_frame_level() - smallest_level + 2;
-					
-					if(debug_){
-						std::cout<<"------------"<<endl;
-						std::cout<<"skip start"<<endl;
-						std::cout<<"skip state: "<<configurations_[0].get_state();
-						std::cout<<" current frame: "<<configurations_[0].get_frame_level()<<" ,smallest frame: "<<smallest_level<<endl; 
-					}
-					loop_flag = true;
-					State* s(configurations_[0].get_state());
-					//push_to_delete_set();  //put states in configurations_ and their pre_states to set
-					configurations_.clear();
+				// int current_level = get_config_smallest_frame_level();
+				// int smallest_level = (smallest_level_historty < current_level)?smallest_level_historty:current_level;
+				// smallest_level_historty = smallest_level;
+
+				//mark delete
+				// for(auto it = delete_set.begin();it != delete_set.end();++it)
+				// 	(*it)->set_skip_delete(true); 
+				
+				if(debug_){
+					std::cout<<"------------"<<endl;
+					std::cout<<"skip start"<<endl;
+					std::cout<<"skip state: "<<configurations_[0].get_state();
+					std::cout<<" current frame: "<<configurations_[0].get_frame_level()<<" ,smallest frame: "<<smallest_level_historty<<endl; 
+				}
+				loop_flag = true;
+				State* s(configurations_[0].get_state());
+				push_to_delete_set();  //put states in configurations_ and their pre_states to set
+				configurations_.clear();
+				if(smallest_level_historty > 0){
+					int should_unroll_level = configurations_[0].get_frame_level() - smallest_level_historty + 2;
 					int skip_unroll = (should_unroll_level <= unroll_max_)?should_unroll_level:unroll_max_;
-					int skip_frame = (should_unroll_level <= unroll_max_)?smallest_level-1:configurations_[0].get_frame_level()-unroll_max_+1;
+					int skip_frame = (should_unroll_level <= unroll_max_)?smallest_level_historty-1:configurations_[0].get_frame_level()-unroll_max_+1;
 					Configuration c(s,skip_frame,skip_unroll);
-					
 					configurations_.push_back(c);
 				}
-				else {
-					delete_set.clear();
+				else{
+					int should_unroll_level = configurations_[0].get_frame_level() + 1;
+					int skip_unroll = (should_unroll_level <= unroll_max_)?should_unroll_level:unroll_max_;
+					int skip_frame = (should_unroll_level <= unroll_max_)?0:configurations_[0].get_frame_level()-unroll_max_+1;
+					Configuration c(s,skip_frame,skip_unroll);
+					configurations_.push_back(c);
 				}
-				
+
+				//delete_set.clear();
 				loop_count = 0;
 			}
 			else 
@@ -250,6 +255,9 @@ namespace car
 			}
 
 			Configuration config = configurations_.back();
+
+			//record the smallest frame level ever reached
+			smallest_level_historty = (config.get_frame_level() < smallest_level_historty)?config.get_frame_level():smallest_level_historty;
 			if(debug_){
 				std::cout<<"------------"<<endl;
 				config.print_config();
@@ -284,7 +292,7 @@ namespace car
 					Configuration temp_c(states[i],config.get_frame_level()+states.size()-i-2,1);
 					configurations_.push_back(temp_c);
 					update_B_sequence(states[i]);
-					delete_set.insert(states[i]);
+					//delete_set.insert(states[i]);
 					
 				}
 				if(debug_){
@@ -321,12 +329,12 @@ namespace car
 				}	
 				if(loop_flag){
 					loop_flag = false;
-					if(config.get_state()->depth() > 0)
-						config.get_state()->set_skip_delete(true); //if config unroll not work, delete config	
+					//if(config.get_state()->depth() > 0)
+						//config.get_state()->set_skip_delete(true); //if config unroll not work, delete config	
 				}
 			}
 		}
-		delete_set.clear();
+		//delete_set.clear();
 		return false;
 		
 	}
@@ -347,7 +355,6 @@ namespace car
 		for(int i = 0;i < configurations_.size();++i){
 			State* current_s = configurations_[i].get_state();
 			while(current_s->pre() != NULL){
-				//loop_delete_state_set_.insert(current_s);
 				current_s->set_skip_delete(true);
 				current_s = current_s->pre();
 			}
