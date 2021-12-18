@@ -118,7 +118,7 @@ void check_aiger (int argc, char** argv)
    bool partial = false;
    bool propagate = false;
    bool begin = false;
-   bool end = true;
+   bool end = false;
    bool inter = true;
    bool rotate = true;
    int unroll_max = 20;  //control max unroll level in loop

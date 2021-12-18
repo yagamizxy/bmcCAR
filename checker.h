@@ -203,6 +203,7 @@ namespace car
 		void push_to_frame (Cube& cu, const int frame_level,int unroll_lev=1);
 		bool tried_before (const State* s, const int frame_level);
 		void push_to_delete_set();
+		void delete_next_states(Configuration& config);
 		
 		State* enumerate_start_state ();
 		State* get_new_start_state ();
