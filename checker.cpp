@@ -308,22 +308,22 @@ namespace car
 				}	
 				if(loop_flag){
 					loop_flag = false;
-					if(begin_){
-						if(config.get_state()->depth() > 0){
-							delete_next_states(config);
+					//if(begin_){
+					if(config.get_state()->depth() > 0){
+						delete_next_states(config);
+					}
+						//if config unroll not work, delete config	
+					else{
+						//if config is initial state , delete all states in B_ except for init_
+						for(int i = 1;i < B_.size();++i){
+							for(auto it = B_[i].begin();it != B_[i].end();++it)
+								(*it)->set_skip_delete(true);
 						}
-							//if config unroll not work, delete config	
-						else{
-							//if config is initial state , delete all states in B_ except for init_
-							for(int i = 1;i < B_.size();++i){
-								for(auto it = B_[i].begin();it != B_[i].end();++it)
-									(*it)->set_skip_delete(true);
-							}
-							if(debug_){
-								std::cout<<"clear all next states of init_"<<endl;
-							}
+						if(debug_){
+							std::cout<<"clear all next states of init_"<<endl;
 						}
-					} //end begin
+					}
+					//} //end begin
 				}//end loop_flag
 			}
 		}//end while
