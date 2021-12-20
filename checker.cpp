@@ -225,7 +225,7 @@ namespace car
 				}
 				loop_flag = true;
 				State* s(configurations_[0].get_state());
-				//push_to_delete_set();  //put states in configurations_ and their pre_states to set
+				push_to_delete_set();  //put states in configurations_ and their pre_states to set
 				configurations_.clear();
 				if(smallest_level_historty > 0){
 					int should_unroll_level = configurations_[0].get_frame_level() - smallest_level_historty + 2;
@@ -261,7 +261,23 @@ namespace car
 			if (tried_before (config.get_state(),config.get_frame_level()+config.get_unroll_level() )){
 				configurations_.pop_back();
 				continue;
-			}	
+			}
+			// bool cube_inv_flag = false;
+			// for(auto it = inv_cube.begin();it != inv_cube.end();++it){
+			// 	Cube config_s = config.get_state()->s();
+			// 	if(car::imply(config_s, *it)){
+			// 		if(debug_){
+			// 		std::cout<<"pop back state from cube_inv"<<endl;
+			// 		}
+			// 		cube_inv_flag = true;
+			// 		break;
+			// 	}
+			// }
+			// if(cube_inv_flag){
+			// 	configurations_.pop_back();
+			// 	continue;
+			// }
+				
 
 			if(is_sat(config)){
 				
@@ -271,7 +287,7 @@ namespace car
 					Configuration temp_c(states[i],config.get_frame_level()+states.size()-i-2,1);
 					configurations_.push_back(temp_c);
 					update_B_sequence(states[i]);
-					delete_set.insert(states[i]);
+					//delete_set.insert(states[i]);
 					
 				}
 				if(debug_){
@@ -281,7 +297,7 @@ namespace car
 					}
 				}
 				if(loop_flag){
-					loop_flag = false;	//reset loop_flag
+					loop_flag = false;	
 				}
 				
 				if(config.get_frame_level() == 0) //exit should be reconsidered
@@ -308,26 +324,11 @@ namespace car
 				}	
 				if(loop_flag){
 					loop_flag = false;
-					//if(begin_){
-					if(config.get_state()->depth() > 0){
-						delete_next_states(config);
-					}
-						//if config unroll not work, delete config	
-					else{
-						//if config is initial state , delete all states in B_ except for init_
-						for(int i = 1;i < B_.size();++i){
-							for(auto it = B_[i].begin();it != B_[i].end();++it)
-								(*it)->set_skip_delete(true);
-						}
-						if(debug_){
-							std::cout<<"clear all next states of init_"<<endl;
-						}
-					}
-					//} //end begin
-				}//end loop_flag
+					//if(config.get_state()->depth() > 0)
+						//config.get_state()->set_skip_delete(true); //if config unroll not work, delete config	
+				}
 			}
-		}//end while
-
+		}
 		//delete_set.clear();
 		return false;
 		
@@ -353,27 +354,6 @@ namespace car
 				current_s = current_s->pre();
 			}
 		}
-	}
-
-	void Checker::delete_next_states(Configuration& config){
-		State* s = config.get_state();
-		s->set_skip_delete(true);
-		int begin_dep = s->depth()+1;
-		std::set<State*> record_set;
-		record_set.insert(s);
-		for(int dep = begin_dep;dep < B_.size();++dep){
-			for(auto it = B_[dep].begin();it != B_[dep].end();++it){
-				
-				if(record_set.find((*it)->pre()) != record_set.end()){ //if pre in set
-					(*it)->set_skip_delete(true);
-					record_set.insert(*it);
-				}
-				
-			}
-		}
-		// for(auto it = record_set.begin();it != record_set.end();++it)
-		// 	delete *it;
-		record_set.clear();
 	}
 
 	/*************propagation****************/
@@ -1144,9 +1124,7 @@ namespace car
 	{
 		//to be done
 		//Frame& frame = (frame_level < int (F_.size ())) ? F_[frame_level] : frame_[unroll_level-1];
-		//assert(frame_level+unroll_level <= F_.size ());
-		if((frame_level+unroll_level) > F_.size ())
-			cout<<"curr level: "<<frame_level+unroll_level<<" F size: "<<F_.size()<<endl;
+		assert(frame_level+unroll_level <= F_.size ());
 		if(frame_level+unroll_level == F_.size ()){
 			Frame new_frame;
 			new_frame.push_back(cu);

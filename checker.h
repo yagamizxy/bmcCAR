@@ -319,13 +319,21 @@ namespace car
 		}
 			
 		//solve
-		stats_->count_main_solver_SAT_time_start ();
+		
 		bool res;
-		if(unroll_lev == 1)
+		if(unroll_lev == 1){
+			stats_->count_main_solver_SAT_time_start ();
 			res = solver_->solve_with_assumption ();
-		else
+			stats_->count_main_solver_SAT_time_end ();
+		}
+			
+		else{
+			stats_->count_bmc_solver_SAT_time_start ();
 			res = unroll_solver_->solve_with_assumption ();
-		stats_->count_main_solver_SAT_time_end ();
+			stats_->count_bmc_solver_SAT_time_end ();
+		}
+			
+		
 		//get recent cube
 		if (!res) {
 			Assignment st3; 
