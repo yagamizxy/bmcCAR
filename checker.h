@@ -426,6 +426,8 @@ namespace car
 	        print_F ();
 	        print_B ();
 	    }
+		
+		//inline void add_loop_max_byten(){loop_count_max_ += 50;}
 	    
 	};
 }

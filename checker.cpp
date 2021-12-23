@@ -205,6 +205,7 @@ namespace car
 		Configuration c(s,(loop_index),1);
 		assert(configurations_.empty());
 		configurations_.push_back(c);
+		int all_count = 0;
 		int loop_count = 0;
 		int smallest_level_historty = loop_index; // record the smallest frame level ever 
 		bool loop_flag = false;
@@ -244,11 +245,13 @@ namespace car
 
 				//delete_set.clear();
 				loop_count = 0;
+				if(loop_count_max_ < 1750)
+					loop_count_max_ += 50;  //add loop max by 10
 			}
 			else 
 				loop_count++;
 			}
-
+			all_count++;
 			Configuration config = configurations_.back();
 
 			//record the smallest frame level ever reached
@@ -330,6 +333,11 @@ namespace car
 			}
 		}
 		//delete_set.clear();
+		if(debug_) {
+			std::cout<<"all count is: "<<all_count<<endl;
+			if(all_count >= 700) std::cout<<"big"<<endl;
+			std::cout<<"stack empty"<<endl;
+		}
 		return false;
 		
 	}
@@ -874,7 +882,7 @@ namespace car
 		 	cu = unroll_solver_->get_conflict (forward_, minimal_uc_, constraint, unroll_lev);
 		if(debug_){
 			cout<<"add uc:"<<endl;
-			//car::print(cu);
+			car::print(cu);
 		}
 		// if(uc_inv_check(cu)){
 		// 	Cube new_cu = inv_solver_->get_conflict();
