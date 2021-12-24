@@ -213,7 +213,7 @@ namespace car
 		while(!configurations_.empty()) //stack non empty
 		{
 			if(loop_count_max_ > 0){
-			if (loop_count >= loop_count_max_){
+			if (loop_count >= 1000){
 				//mark delete
 				// for(auto it = delete_set.begin();it != delete_set.end();++it)
 				// 	(*it)->set_skip_delete(true); 
@@ -245,11 +245,30 @@ namespace car
 
 				//delete_set.clear();
 				loop_count = 0;
-				if(loop_count_max_ < 1750)
-					loop_count_max_ += 50;  //add loop max by 10
+				// if(loop_count_max_ < 1750)
+				// 	loop_count_max_ += 50;  //add loop max by 10
+			}
+			else if(loop_count == loop_count_max_){
+				if(smallest_level_historty > 0){
+					int should_unroll_level = configurations_[0].get_frame_level() - smallest_level_historty + 2;
+					int skip_unroll = (should_unroll_level <= unroll_max_)?should_unroll_level:unroll_max_;
+					int skip_frame = (should_unroll_level <= unroll_max_)?smallest_level_historty-1:configurations_[0].get_frame_level()-unroll_max_+1;
+					Configuration c(s,skip_frame,skip_unroll);
+					configurations_.push_back(c);
+				}
+				else{
+					int should_unroll_level = configurations_[0].get_frame_level() + 1;
+					int skip_unroll = (should_unroll_level <= unroll_max_)?should_unroll_level:unroll_max_;
+					int skip_frame = (should_unroll_level <= unroll_max_)?0:configurations_[0].get_frame_level()-unroll_max_+1;
+					Configuration c(s,skip_frame,skip_unroll);
+					configurations_.push_back(c);
+				}
+				loop_count++;
+				loop_flag = true;
 			}
 			else 
 				loop_count++;
+			
 			}
 			all_count++;
 			Configuration config = configurations_.back();
