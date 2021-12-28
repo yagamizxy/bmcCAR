@@ -61,11 +61,11 @@ namespace car
 	    stats_ = stats;
 		model_ = m;
 		current_unroll_level_ = 1; //default unrolling level is 1
-		max_unroll_level_ = m->get_max_unroll();
-		init_flag_ = m->max_id()*(max_unroll_level_+1) + 1;
-		dead_flag_ = m->max_id ()*(max_unroll_level_+1) + 2;
-		max_flag_ = m->max_id()*(max_unroll_level_+1) + 3;
-	    //constraints
+		// max_unroll_level_ = m->get_max_unroll();
+		// init_flag_ = m->max_id()*(max_unroll_level_+1) + 1;
+		// dead_flag_ = m->max_id ()*(max_unroll_level_+1) + 2;
+		// max_flag_ = m->max_id()*(max_unroll_level_+1) + 3;
+	    
 		for (int i = 0; i < m->outputs_start (); i ++)
 			add_clause (m->element (i));
 		//outputs
@@ -74,7 +74,7 @@ namespace car
 		//latches
 		for (int i = m->latches_start (); i < m->size (); i ++)
 		    add_clause (m->element (i));
-		unroll_to_level(max_unroll_level_);
+		//unroll_to_level(max_unroll_level_);
 	}
 	
 	void MainSolver::set_assumption (const Assignment& st, const int id)
@@ -109,6 +109,20 @@ namespace car
 			
 	}
 
+	void MainSolver::bmc_set_assumption (const Assignment& a,const int bad,const int unroll_level)
+		{
+			assumption_.clear ();
+			assumption_push(model_->prime(bad,unroll_level));
+			//frame prime flag
+			
+			for (Assignment::const_iterator it = a.begin (); it != a.end (); it ++)
+			{
+				int id = *it;
+				assumption_push (id);
+			}
+				
+		}
+
 	void MainSolver::set_assumption (const Assignment& a,const int bad,const int frame_level, const bool forward,const int unroll_lev)
 	{
 		assumption_.clear ();
@@ -136,6 +150,16 @@ namespace car
 		}
 			
 	}
+
+	void MainSolver::unroll_one_more(const int level){
+		if(level == 1) return;
+		
+		for (int i = 0; i < model_->size (); i ++){
+			vector<int> tmp = model_->clause_prime(i,level);
+			add_clause (tmp);
+		}
+	}
+
 	void MainSolver::unroll_to_level(const int level){
 		
 		for(int lev = 2; lev <= level; lev++){
@@ -212,9 +236,9 @@ namespace car
 		}
 		
 			
-		if (forward)
-		    model_->shrink_to_previous_vars (conflict, constraint,unroll_lev);
-		else
+		// if (forward)
+		//     model_->shrink_to_previous_vars (conflict, constraint,unroll_lev);
+		// else
 		    model_ -> shrink_to_latch_vars (conflict, constraint);
 		
 		

@@ -195,8 +195,10 @@ namespace car
 		bool solve_with (const Cube &cu, const int frame_level);
 		State* get_new_state (const State *s,const int unroll_lev=1);
 		std::vector<State*> get_all_states(Configuration& config);
+		std::vector<State*> bmc_get_all_states(int unroll_level);
 		void extend_F_sequence ();
 		void update_F_sequence (Configuration& config);
+		void bmc_update_F_sequence (int unroll_lev);
 		void update_frame_by_relative (const State* s, const int frame_level);
 		void update_B_sequence (State* s);
 		int get_new_level (const State *s, const int frame_level);
@@ -213,6 +215,7 @@ namespace car
 		void car_finalization ();
 		void destroy_states ();
 		bool car_check ();
+		bool bmc_check();
 		
 		void get_partial (Assignment& st, const State* s=NULL);
 		void add_dead_to_solvers (Cube& dead_uc);
@@ -348,6 +351,20 @@ namespace car
 
 		return res;
 	}
+
+	inline bool bmc_sat(int unroll){
+		//unroll in solver
+		Assignment st2 = init_->s();
+		
+		unroll_solver_->bmc_set_assumption (st2,bad_,unroll);
+		
+		bool res;
+			stats_->count_bmc_solver_SAT_time_start ();
+			res = unroll_solver_->solve_with_assumption ();
+			stats_->count_bmc_solver_SAT_time_end ();
+		return res;
+	}
+
 
 	inline bool uc_inv_check(Cube& cu){
 		//check whether cu is a inv
