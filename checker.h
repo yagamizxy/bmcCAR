@@ -32,6 +32,11 @@
 #include <assert.h>
 #include "utility.h"
 #include "statistics.h"
+#include <stdio.h>
+#include <unistd.h>
+#include <pthread.h>
+#include <signal.h>
+
 #include <fstream>
 #include <algorithm>
 #include <set>
@@ -109,7 +114,7 @@ namespace car
 	class Checker 
 	{
 	public:
-		Checker (Model* model, Statistics& stats, std::ofstream* dot, bool forward, bool evidence, bool partial, bool propagate, bool begin, bool end, bool inter, bool rotate, bool verbose, bool minimal_uc,bool ilock,int unroll_max,bool debug,int loop_max);
+		Checker (Model* model, Statistics& stats, std::ofstream* dot, bool forward, bool evidence, bool partial, bool propagate, bool begin, bool end, bool inter, bool rotate, bool verbose, bool minimal_uc,bool ilock,int unroll_max,bool debug,int bmc_max_time);
 		~Checker ();
 		
 		bool check (std::ofstream&);
@@ -134,7 +139,8 @@ namespace car
 		bool ilock_;
 		int unroll_max_;
 		bool debug_;
-		int loop_count_max_;
+		int bmc_max_time_;
+		int bmc_res_;
 
 		//std::vector<std::pair<Cube, int>> unroll_pair; //store the unroll uc and uc framelevel
 		//new flags for reorder and state enumeration
@@ -215,7 +221,12 @@ namespace car
 		void car_finalization ();
 		void destroy_states ();
 		bool car_check ();
-		bool bmc_check();
+		void bmc_check();
+		static inline void* wrapper_bmc_check(bool* object){
+			reinterpret_cast<Checker*>(object)->bmc_check();
+			return 0;
+		}
+		static void alarm_handler();
 		
 		void get_partial (Assignment& st, const State* s=NULL);
 		void add_dead_to_solvers (Cube& dead_uc);

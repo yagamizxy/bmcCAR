@@ -122,7 +122,7 @@ void check_aiger (int argc, char** argv)
    bool inter = true;
    bool rotate = true;
    int unroll_max = 20;  //control max unroll level in loop
-   int loop_max = 100;   //control max loop times
+   int bmc_max_time = 10;   //default max bmc time is 10 min
    bool debug = false;
    
    string input;
@@ -143,7 +143,7 @@ void check_aiger (int argc, char** argv)
    			ilock = true;
       else if (isdigit(argv[i][1])){
         string tmp = argv[i];
-        loop_max = stoi(tmp.substr(1));
+        bmc_max_time = stoi(tmp.substr(1));
       }
       else if (strcmp (argv[i], "-debug") == 0)
    			debug = true;
@@ -244,7 +244,7 @@ void check_aiger (int argc, char** argv)
    //which is consistent with the HWMCC format
    assert (model->num_outputs () >= 1);
    
-   ch = new Checker (model, stats, dot_file, forward, evidence, partial, propagate, begin, end, inter, rotate, verbose, minimal_uc,ilock,unroll_max,debug,loop_max);
+   ch = new Checker (model, stats, dot_file, forward, evidence, partial, propagate, begin, end, inter, rotate, verbose, minimal_uc,ilock,unroll_max,debug,bmc_max_time);
 
    aiger_reset(aig);
    

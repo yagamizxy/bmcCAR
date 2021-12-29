@@ -25,6 +25,7 @@
 #include <iostream>
 #include "utility.h"
 #include "statistics.h"
+pthread_t bmc;
 using namespace std;
 
 namespace car
@@ -65,8 +66,18 @@ namespace car
 	        
 	        car_initialization ();
 			initialize_sequences ();
-	        //bool res = car_check ();
-			bool res = bmc_check ();
+	        
+			pthread_create(&bmc, NULL, &Checker::wrapper_bmc_check, this);
+			signal(SIGALRM, alarm_handler);
+    		alarm(600);
+			//set up time out
+
+			bool res;
+			if(bmc_res_) res = true;
+			else
+			 	res = car_check ();;
+			//if time out,use car
+			
 	        if (res)
     			out << "1" << endl;
    			else
@@ -83,9 +94,17 @@ namespace car
 	    }
 	}
 	
-	bool Checker::bmc_check(){
+	void Checker::alarm_handler()
+		{
+			pthread_cancel(bmc);    // terminate thread
+		}
+
+	void Checker::bmc_check(){
+		car_initialization ();
+		initialize_sequences ();
 		if (immediate_satisfiable ()){  //0 step
-			return true;
+			bmc_res_ = true;
+			return;
 		}
 		int unroll = 1;
 		while (true) {
@@ -94,7 +113,8 @@ namespace car
 			if(res){
 				//get states
 				std::vector<State*> states = bmc_get_all_states(unroll);
-				return true;
+				bmc_res_ = true;
+				return;
 			}
 			else{
 				unroll++;
@@ -115,10 +135,10 @@ namespace car
 			return true;
 		}
 
-		initialize_sequences ();
+		//initialize_sequences ();
 			
-		int loop_index = 0;
-		
+		//int loop_index = 0;
+		int loop_index = F_.size()-1;
 		while (true){
 		    cout << "Frame " << loop_index << endl;
 		    //print the number of clauses in each frame
@@ -230,83 +250,13 @@ namespace car
 		Configuration c(s,(loop_index),1);
 		assert(configurations_.empty());
 		configurations_.push_back(c);
-		int all_count = 0;
-		int loop_count = 0;
-		int smallest_level_historty = loop_index; // record the smallest frame level ever 
-		bool loop_flag = false;
+
 		std::set<State*> delete_set;
 		while(!configurations_.empty()) //stack non empty
 		{
-			if(loop_count_max_ > 0){
-			if (loop_count >= loop_count_max_){
-				//mark delete
-				// for(auto it = delete_set.begin();it != delete_set.end();++it)
-				// 	(*it)->set_skip_delete(true); 
-				
-				if(debug_){
-					std::cout<<"------------"<<endl;
-					std::cout<<"skip start"<<endl;
-					std::cout<<"skip state: "<<configurations_[0].get_state();
-					std::cout<<" current frame: "<<configurations_[0].get_frame_level()<<" ,smallest frame: "<<smallest_level_historty<<endl; 
-				}
-				loop_flag = true;
-				//State* s(configurations_[0].get_state());
-				push_to_delete_set();  //put states in configurations_ and their pre_states to set
-				configurations_.clear();
-				if(smallest_level_historty > 0){
-					int should_unroll_level = configurations_[0].get_frame_level() - smallest_level_historty + 2;
-					int skip_unroll = (should_unroll_level <= unroll_max_)?should_unroll_level:unroll_max_;
-					int skip_frame = (should_unroll_level <= unroll_max_)?smallest_level_historty-1:configurations_[0].get_frame_level()-unroll_max_+1;
-					Configuration c(s,skip_frame,skip_unroll);
-					configurations_.push_back(c);
-				}
-				else{
-					int should_unroll_level = configurations_[0].get_frame_level() + 1;
-					int skip_unroll = (should_unroll_level <= unroll_max_)?should_unroll_level:unroll_max_;
-					int skip_frame = (should_unroll_level <= unroll_max_)?0:configurations_[0].get_frame_level()-unroll_max_+1;
-					Configuration c(s,skip_frame,skip_unroll);
-					configurations_.push_back(c);
-				}
-
-				//delete_set.clear();
-				loop_count = 0;
-				// if(loop_count_max_ < 1750)
-				// 	loop_count_max_ += 10;  //add loop max by 10
-			}
-			else if(loop_count == 300){
-				State* last_state = configurations_[0].get_state();
-				int last_level = configurations_[0].get_frame_level();
-				if(smallest_level_historty > 0){
-					//int should_unroll_level = configurations_[0].get_frame_level() - smallest_level_historty + 2;
-					int should_unroll_level = last_level - smallest_level_historty + 2;
-					int skip_unroll = (should_unroll_level <= unroll_max_)?should_unroll_level:unroll_max_;
-					int skip_frame = (should_unroll_level <= unroll_max_)?smallest_level_historty-1:last_level-unroll_max_+1;
-					Configuration c(last_state,skip_frame,skip_unroll);
-					configurations_.push_back(c);
-				}
-				else{
-					int should_unroll_level = last_level + 1;
-					int skip_unroll = (should_unroll_level <= unroll_max_)?should_unroll_level:unroll_max_;
-					int skip_frame = (should_unroll_level <= unroll_max_)?0:last_level-unroll_max_+1;
-					Configuration c(last_state,skip_frame,skip_unroll);
-					configurations_.push_back(c);
-				}
-				loop_count++;
-				loop_flag = true;
-				if(debug_){
-					std::cout<<"300 bmc"<<endl;
-				}
-			}
-			else 
-				loop_count++;
-			
-			}
-			all_count++;
 
 			Configuration config = configurations_.back();
-
-			//record the smallest frame level ever reached
-			smallest_level_historty = (config.get_frame_level() < smallest_level_historty)?config.get_frame_level():smallest_level_historty;
+			
 			if(debug_){
 				std::cout<<"------------"<<endl;
 				config.print_config();
@@ -315,23 +265,7 @@ namespace car
 			if (tried_before (config.get_state(),config.get_frame_level()+config.get_unroll_level() )){
 				configurations_.pop_back();
 				continue;
-			}
-			// bool cube_inv_flag = false;
-			// for(auto it = inv_cube.begin();it != inv_cube.end();++it){
-			// 	Cube config_s = config.get_state()->s();
-			// 	if(car::imply(config_s, *it)){
-			// 		if(debug_){
-			// 		std::cout<<"pop back state from cube_inv"<<endl;
-			// 		}
-			// 		cube_inv_flag = true;
-			// 		break;
-			// 	}
-			// }
-			// if(cube_inv_flag){
-			// 	configurations_.pop_back();
-			// 	continue;
-			// }
-				
+			}	
 
 			if(is_sat(config)){
 				
@@ -346,21 +280,11 @@ namespace car
 				}
 				if(debug_){
 					std::cout<<"is sat"<<endl;
-					if(loop_flag){
-						std::cout<<"skip find new state"<<endl;
-					}
 				}
-				if(loop_flag){
-					loop_flag = false;	
-				}
-				
+
 				if(config.get_frame_level() == 0) //exit should be reconsidered
-				{
-					if(config.get_unroll_level() > 1) std::cout<<"use bmc to find counter example"<<endl;
-					//last_ = config.get_state();
 					return true;
-				}
-					
+	
 			}
 			else{
 				
@@ -369,26 +293,15 @@ namespace car
 				if (safe_reported()) return false;
 				int unroll_level = config.get_unroll_level();
 				int frame_level = config.get_frame_level();
-				if(configurations_.empty() && (unroll_level < 4)){
-					config.set_unroll_level(unroll_level+1);
-					configurations_.push_back(config);
-				}
-				if(!loop_flag && (frame_level < loop_index)){
+				// if(unroll_level < 4){
+				// 	config.set_unroll_level(unroll_level+1);
+				// 	configurations_.push_back(config);
+				// }
+				if(frame_level < loop_index){
 					config.set_frame_level(frame_level+1);
 					configurations_.push_back(config);
 				}	
-				if(loop_flag){
-					loop_flag = false;
-					//if(config.get_state()->depth() > 0)
-						//config.get_state()->set_skip_delete(true); //if config unroll not work, delete config	
-				}
 			}
-		}
-		//delete_set.clear();
-		if(debug_) {
-			std::cout<<"all count is: "<<all_count<<endl;
-			if(all_count >= 700) std::cout<<"big"<<endl;
-			std::cout<<"stack empty"<<endl;
 		}
 		return false;
 		
@@ -473,7 +386,7 @@ namespace car
 		
 	//////////////helper functions/////////////////////////////////////////////
 
-	Checker::Checker (Model* model, Statistics& stats, ofstream* dot, bool forward, bool evidence, bool partial, bool propagate, bool begin, bool end, bool inter, bool rotate, bool verbose, bool minimal_uc, bool ilock,int unroll_max,bool debug,int loop_max)
+	Checker::Checker (Model* model, Statistics& stats, ofstream* dot, bool forward, bool evidence, bool partial, bool propagate, bool begin, bool end, bool inter, bool rotate, bool verbose, bool minimal_uc, bool ilock,int unroll_max,bool debug,int bmc_max_time)
 	{
 	    
 		model_ = model;
@@ -492,7 +405,8 @@ namespace car
 		minimal_uc_ = minimal_uc;
 		ilock_ = ilock;
 		unroll_max_ = unroll_max;
-		loop_count_max_= loop_max;
+		bmc_max_time_= bmc_max_time;
+		bmc_res_ = false;
 		debug_ = debug; 
 		evidence_ = evidence;
 		verbose_ = verbose;
