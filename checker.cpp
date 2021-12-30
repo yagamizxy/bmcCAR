@@ -67,16 +67,14 @@ namespace car
 	        car_initialization ();
 			initialize_sequences ();
 	        
-			pthread_create(&bmc, NULL, &Checker::wrapper_bmc_check, this);
-			signal(SIGALRM, alarm_handler);
-    		alarm(600);
-			//set up time out
-
+			bool bmc_res = false;
+			bmc_res = bmc_check();
+			
 			bool res;
-			if(bmc_res_) res = true;
+			if(bmc_res) res = true;
 			else
-			 	res = car_check ();;
-			//if time out,use car
+			 	res = car_check (); //if time out,use car
+			
 			
 	        if (res)
     			out << "1" << endl;
@@ -93,36 +91,35 @@ namespace car
 	        	return res;
 	    }
 	}
-	
-	void Checker::alarm_handler()
-		{
-			pthread_cancel(bmc);    // terminate thread
-		}
 
-	void Checker::bmc_check(){
-		car_initialization ();
-		initialize_sequences ();
+	bool Checker::bmc_check(){
+		
 		if (immediate_satisfiable ()){  //0 step
-			bmc_res_ = true;
-			return;
+			return true;
 		}
 		int unroll = 1;
+		double all_bmc_time = 0.0;
+		double last_bmc_time = 0.0;
 		while (true) {
+			clock_t begin = clock();
+			if(debug_) std::cout<<"bmc unroll: "<<unroll<<endl;
 			unroll_solver_->unroll_one_more(unroll);
 			bool res = bmc_sat(unroll);
 			if(res){
 				//get states
 				std::vector<State*> states = bmc_get_all_states(unroll);
-				bmc_res_ = true;
-				return;
+				return true;
 			}
 			else{
-				unroll++;
-				bmc_update_F_sequence(unroll);
-
 				//get uc and put to F
+				bmc_update_F_sequence(unroll);
 			}
-				
+			clock_t end = clock();
+			last_bmc_time = double (end - begin) / CLOCKS_PER_SEC;
+			all_bmc_time += last_bmc_time;
+			//predict the next bmctime is equal to the last bmctiime, if all + next surpass the max,end
+			if((all_bmc_time + last_bmc_time)>= (double)bmc_max_time_) return false;
+			unroll++;
 		}
 	}
 
@@ -406,7 +403,6 @@ namespace car
 		ilock_ = ilock;
 		unroll_max_ = unroll_max;
 		bmc_max_time_= bmc_max_time;
-		bmc_res_ = false;
 		debug_ = debug; 
 		evidence_ = evidence;
 		verbose_ = verbose;
@@ -924,6 +920,8 @@ namespace car
 		Frame new_frame;
 		new_frame.push_back(cu);
 		F_.push_back(new_frame);
+
+		solver_->add_clause_from_cube (cu, unroll_lev, forward_);
 		
 		
 	}

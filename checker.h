@@ -32,10 +32,7 @@
 #include <assert.h>
 #include "utility.h"
 #include "statistics.h"
-#include <stdio.h>
-#include <unistd.h>
-#include <pthread.h>
-#include <signal.h>
+#include <time.h>
 
 #include <fstream>
 #include <algorithm>
@@ -140,7 +137,6 @@ namespace car
 		int unroll_max_;
 		bool debug_;
 		int bmc_max_time_;
-		int bmc_res_;
 
 		//std::vector<std::pair<Cube, int>> unroll_pair; //store the unroll uc and uc framelevel
 		//new flags for reorder and state enumeration
@@ -221,11 +217,8 @@ namespace car
 		void car_finalization ();
 		void destroy_states ();
 		bool car_check ();
-		void bmc_check();
-		static inline void* wrapper_bmc_check(bool* object){
-			reinterpret_cast<Checker*>(object)->bmc_check();
-			return 0;
-		}
+		bool bmc_check();
+		
 		static void alarm_handler();
 		
 		void get_partial (Assignment& st, const State* s=NULL);
