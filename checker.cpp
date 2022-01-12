@@ -68,7 +68,7 @@ namespace car
 			initialize_sequences ();
 	        
 			bool bmc_res = false;
-			bmc_res = bmc_check();
+			//bmc_res = bmc_check();
 			
 			bool res;
 			if(bmc_res) res = true;
@@ -112,7 +112,8 @@ namespace car
 			}
 			else{
 				//get uc and put to F
-				bmc_update_F_sequence(unroll);
+				if(unroll <= 100)
+					bmc_update_F_sequence(unroll);
 			}
 			clock_t end = clock();
 			last_bmc_time = double (end - begin) / CLOCKS_PER_SEC;
@@ -237,12 +238,6 @@ namespace car
 	{
 		if (tried_before (s, loop_index+1))
 			return false;
-		if (s->get_skip_delete()){
-			if(debug_){
-				std::cout<<"delete state: "<<s<<endl;
-			}
-			return false;
-		}
 			
 		Configuration c(s,(loop_index),1);
 		assert(configurations_.empty());
@@ -300,6 +295,7 @@ namespace car
 				}	
 			}
 		}
+		if(debug_) std::cout<<"stack empty"<<endl;
 		return false;
 		
 	}
@@ -865,7 +861,7 @@ namespace car
 		 	cu = unroll_solver_->get_conflict (forward_, minimal_uc_, constraint, unroll_lev);
 		if(debug_){
 			cout<<"add uc:"<<endl;
-			car::print(cu);
+			//car::print(cu);
 		}
 		// if(uc_inv_check(cu)){
 		// 	Cube new_cu = inv_solver_->get_conflict();
