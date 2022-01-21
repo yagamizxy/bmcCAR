@@ -147,12 +147,6 @@ void check_aiger (int argc, char** argv)
       }
       else if (strcmp (argv[i], "-debug") == 0)
    			debug = true;
-      // else if (strcmp (argv[i], "-3") == 0)
-   		// 	unroll_max = 3;
-      // else if (strcmp (argv[i], "-4") == 0)
-   		// 	unroll_max = 4;
-      // else if (strcmp (argv[i], "-5") == 0)
-   		// 	unroll_max = 5;
    		else if (strcmp (argv[i], "-h") == 0)
    			print_usage ();
    		else if (strcmp (argv[i], "-begin") == 0) {

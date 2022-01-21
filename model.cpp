@@ -152,7 +152,6 @@ namespace car{
 			assert (aa != NULL);
 			//add_clauses_from_gate (aa);
 			add_prime_clauses_from_gate (aa);
-			//bmc_add_prime_clauses_from_gate (aa);  //add bmc needed clause
 		}
 		
 		set_latches_start ();
@@ -173,16 +172,11 @@ namespace car{
 			//add clauses for prime (it->first) <-> it->second
 			cls_.push_back (clause (prime (-(it->first)), it->second));
 			cls_.push_back (clause (prime (it->first), -(it->second)));
-			// bmc_cls_.push_back (clause (prime (-(it->first)), it->second));
-			// bmc_cls_.push_back (clause (prime (it->first), -(it->second)));
 		}
 		
 		//create clauses for true
 		cls_.push_back (clause (true_));
 		cls_.push_back (clause (prime (true_)));
-
-		// bmc_cls_.push_back (clause (true_));
-		// bmc_cls_.push_back (clause (prime (true_)));
 		
 		for(int i=0;i<constraints_.size();i++)
 			cls_.push_back(clause(constraints_[i]));
@@ -294,38 +288,6 @@ namespace car{
 		}
 	}
 
-	void Model::bmc_add_prime_clauses_from_gate (const aiger_and* aa){
-		assert (aa != NULL);
-		assert (!is_true (aa->lhs) && !is_false (aa->lhs));
-		
-		if (is_true (aa->rhs0))
-		{
-			bmc_cls_.push_back (clause (car_var (aa->lhs), -car_var (aa->rhs1)));
-			bmc_cls_.push_back (clause (-car_var (aa->lhs), car_var (aa->rhs1)));
-			//add the prime for aa->lhs
-			bmc_cls_.push_back (clause (prime (car_var (aa->lhs)), prime (-car_var (aa->rhs1))));
-			bmc_cls_.push_back (clause (prime (-car_var (aa->lhs)), prime (car_var (aa->rhs1))));
-		}
-		else if (is_true (aa->rhs1))
-		{
-			bmc_cls_.push_back (clause (car_var (aa->lhs), -car_var (aa->rhs0)));
-			bmc_cls_.push_back (clause (-car_var (aa->lhs), car_var (aa->rhs0)));
-			//add the prime for aa->lhs
-			bmc_cls_.push_back (clause (prime (car_var (aa->lhs)), prime (-car_var (aa->rhs0))));
-			bmc_cls_.push_back (clause (prime (-car_var (aa->lhs)), prime (car_var (aa->rhs0))));
-		}
-		else
-		{
-			bmc_cls_.push_back (clause (car_var (aa->lhs), -car_var (aa->rhs0), -car_var (aa->rhs1)));
-			bmc_cls_.push_back (clause (-car_var (aa->lhs), car_var (aa->rhs0)));
-			bmc_cls_.push_back (clause (-car_var (aa->lhs), car_var (aa->rhs1)));
-			//add the prime for aa->lhs
-			bmc_cls_.push_back (clause (prime (car_var (aa->lhs)), prime (-car_var (aa->rhs0)), prime (-car_var (aa->rhs1))));
-			bmc_cls_.push_back (clause (prime (-car_var (aa->lhs)), prime (car_var (aa->rhs0))));
-			bmc_cls_.push_back (clause (prime (-car_var (aa->lhs)), prime (car_var (aa->rhs1))));
-		}
-	}
-
 	void Model::set_init (const aiger* aig)
 	{
 		for (int i = 0; i < aig->num_latches; i ++)
@@ -380,14 +342,6 @@ namespace car{
 			res[i] = prime(res[i],level-1);
 		return res;
 	}
-
-	//prime of bmc_cls_[id]
-	// std::vector<int> Model::bmc_clause_prime(const int id,int level){
-	// 	std::vector<int> res = bmc_cls_[id];
-	// 	for(int i = 0;i<res.size();i++)
-	// 		res[i] = prime(res[i],level-1);
-	// 	return res;
-	// }
 
 	//prime of a cube
 	void Model::cube_prime(std::vector<int>& cube,int level){
@@ -460,9 +414,6 @@ namespace car{
 	    cout << endl << "number of clauses: " << cls_.size () << endl;
 	    for (int i  = 0; i < cls_.size (); i ++)
 	        car::print (cls_[i]);
-		// cout << endl << "number of bmc clauses: " << bmc_cls_.size () << endl;
-		// for (int i  = 0; i < bmc_cls_.size (); i ++)
-	    //     car::print (bmc_cls_[i]);
 	    cout << endl << "next map: " << endl;
 	    car::print (next_map_);
 	    cout << endl << "reverse next map:" << endl;

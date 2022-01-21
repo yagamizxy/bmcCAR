@@ -49,16 +49,13 @@ class MainSolver : public CARSolver
 		void set_assumption (const Assignment&, const int bad,const int frame_level, const bool forward);
 		void set_assumption (const Assignment&, const int bad,const int frame_level, const bool forward,const int unroll_lev);
 		void set_assumption (const Assignment&, const int);
-		void bmc_set_assumption (const Assignment& a,const int bad,const int unroll_level);
 		void set_assumption (const Assignment& st){
 			assumption_.clear ();
 			for (auto it = st.begin(); it != st.end(); ++it)
 				assumption_push (*it);
 		}
-
-		void unroll_one_more(const int level);
+		
 		void unroll_to_level(const int level);
-
 		inline int get_unroll_flag(int& ind) {return unroll_flags_[ind-2];}
 		inline int get_unroll_level(){return current_unroll_level_;}
 
