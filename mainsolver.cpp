@@ -88,15 +88,19 @@ namespace car
 		}		
 	}
 	
-	void MainSolver::set_assumption (const Assignment& a,const int bad,const int frame_level, const bool forward)
+	void MainSolver::set_assumption (const Assignment& a,const int bad,const int frame_level,int max_frame_level, const bool forward)
 	{
 		assumption_.clear ();
-		
+		//frame prime flag
 		if (frame_level > 0)
 			assumption_push (frame_flag_[frame_level-1]);	
 		else if(frame_level == 0)
 			assumption_push(model_->prime(bad,1));
-		//frame prime flag
+		
+		//add negation of other flags 
+		for (int level = 1;level <= max_frame_level;level++){
+			if(level != frame_level) assumption_push (-flag_of(level));
+		}
 		
 		for (Assignment::const_iterator it = a.begin (); it != a.end (); it ++)
 		{

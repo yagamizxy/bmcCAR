@@ -406,7 +406,7 @@ namespace car
 	}
 	
 	bool Checker::propagate (Cube& cu, int n){
-		solver_->set_assumption (cu, n, forward_,1);
+		solver_->set_assumption (cu, bad_,n,F_.size(), forward_);
 		//solver_->print_assumption();
 		//solver_->print_clauses();
 	    stats_->count_main_solver_SAT_time_start ();

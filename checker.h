@@ -312,7 +312,7 @@ namespace car
 
 		//set assumption
 		if(unroll_lev == 1)
-			solver_->set_assumption (st2,bad_, new_level, forward_);
+			solver_->set_assumption (st2,bad_, new_level,F_.size(), forward_);
 		else{
 			unroll_solver_->push_frame_to_unroll_solver(F_[new_level],new_level,unroll_lev);
 			unroll_solver_->set_assumption (st2,bad_, new_level, forward_,unroll_lev);

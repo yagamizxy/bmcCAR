@@ -46,7 +46,7 @@ class MainSolver : public CARSolver
 		~MainSolver (){}
 		
 		//public funcitons
-		void set_assumption (const Assignment&, const int bad,const int frame_level, const bool forward);
+		void set_assumption (const Assignment&, const int bad,const int frame_level, int max_frame_level, const bool forward);
 		void set_assumption (const Assignment&, const int bad,const int frame_level, const bool forward,const int unroll_lev);
 		void set_assumption (const Assignment&, const int);
 		void set_assumption (const Assignment& st){
