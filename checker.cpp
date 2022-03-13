@@ -195,122 +195,29 @@ namespace car
 	{
 		if (tried_before (s, loop_index+1))
 			return false;
-		if (s->get_skip_delete()){
-			if(debug_){
-				std::cout<<"delete state: "<<s<<endl;
-			}
-			return false;
-		}
-			
+		
 		Configuration c(s,(loop_index),1);
 		assert(configurations_.empty());
 		configurations_.push_back(c);
-		int all_count = 0;
-		int loop_count = 0;
-		int smallest_level_historty = loop_index; // record the smallest frame level ever 
-		bool loop_flag = false;
-		std::set<State*> delete_set;
 		while(!configurations_.empty()) //stack non empty
 		{
-			if(loop_count_max_ > 0){
-			if (loop_count >= loop_count_max_){
-				//mark delete
-				// for(auto it = delete_set.begin();it != delete_set.end();++it)
-				//  	(*it)->set_skip_delete(true); 
-				
-				if(debug_){
-					std::cout<<"------------"<<endl;
-					std::cout<<"skip start"<<endl;
-					std::cout<<"skip state: "<<configurations_[0].get_state();
-					std::cout<<" current frame: "<<configurations_[0].get_frame_level()<<" ,smallest frame: "<<smallest_level_historty<<endl; 
-				}
-				loop_flag = true;
-				//State* s(configurations_[0].get_state());
-				push_to_delete_set();  //put states in configurations_ and their pre_states to set
-				configurations_.clear();
-				if(smallest_level_historty > 0){
-					int should_unroll_level = configurations_[0].get_frame_level() - smallest_level_historty + 2;
-					int skip_unroll = (should_unroll_level <= unroll_max_)?should_unroll_level:unroll_max_;
-					int skip_frame = (should_unroll_level <= unroll_max_)?smallest_level_historty-1:configurations_[0].get_frame_level()-unroll_max_+1;
-					Configuration c(s,skip_frame,skip_unroll);
-					configurations_.push_back(c);
-				}
-				else{
-					int should_unroll_level = configurations_[0].get_frame_level() + 1;
-					int skip_unroll = (should_unroll_level <= unroll_max_)?should_unroll_level:unroll_max_;
-					int skip_frame = (should_unroll_level <= unroll_max_)?0:configurations_[0].get_frame_level()-unroll_max_+1;
-					Configuration c(s,skip_frame,skip_unroll);
-					configurations_.push_back(c);
-				}
-
-				delete_set.clear();
-				loop_count = 0;
-				// if(loop_count_max_ < 1750)
-				// 	loop_count_max_ += 10;  //add loop max by 10
-			}
-			else if(loop_count == 250){
-				State* last_state = configurations_[0].get_state();
-				int last_level = configurations_[0].get_frame_level();
-				if(smallest_level_historty > 0){
-					//int should_unroll_level = configurations_[0].get_frame_level() - smallest_level_historty + 2;
-					int should_unroll_level = last_level - smallest_level_historty + 2;
-					int skip_unroll = (should_unroll_level <= unroll_max_)?should_unroll_level:unroll_max_;
-					int skip_frame = (should_unroll_level <= unroll_max_)?smallest_level_historty-1:last_level-unroll_max_+1;
-					Configuration c(last_state,skip_frame,skip_unroll);
-					configurations_.push_back(c);
-				}
-				else{
-					int should_unroll_level = last_level + 1;
-					int skip_unroll = (should_unroll_level <= unroll_max_)?should_unroll_level:unroll_max_;
-					int skip_frame = (should_unroll_level <= unroll_max_)?0:last_level-unroll_max_+1;
-					Configuration c(last_state,skip_frame,skip_unroll);
-					configurations_.push_back(c);
-				}
-				loop_count++;
-				loop_flag = true;
-				if(debug_){
-					std::cout<<"300 bmc"<<endl;
-				}
-			}
-			else 
-				loop_count++;
-			
-			}
-			all_count++;
-
 			Configuration config = configurations_.back();
-
-			//record the smallest frame level ever reached
-			smallest_level_historty = (config.get_frame_level() < smallest_level_historty)?config.get_frame_level():smallest_level_historty;
-			if(debug_){
-				std::cout<<"------------"<<endl;
-				config.print_config();
-			}
-				
+			//config.print_config();
 			if (tried_before (config.get_state(),config.get_frame_level()+config.get_unroll_level() )){
 				configurations_.pop_back();
 				continue;
-			}	
+			}
 
 			if(is_sat(config)){
+				//std::cout<<"is sat"<<endl;
+				std::vector<State*> states = get_all_states(config); //states in order, the last is the new state not in config.framelevel
 				
-				std::vector<State*> states = get_all_states(config); //states in order, the last is the state in config.framelevel
-				//push states into stack
 				for(int i = 0;i < states.size();++i){
+					// std::cout<<"state "<<i+1<<endl;
+					// std::cout<<states[i]->inputs()<<endl;
 					Configuration temp_c(states[i],config.get_frame_level()+states.size()-i-2,1);
 					configurations_.push_back(temp_c);
 					update_B_sequence(states[i]);
-					//delete_set.insert(states[i]);
-					
-				}
-				if(debug_){
-					std::cout<<"is sat"<<endl;
-					if(loop_flag){
-						std::cout<<"skip find new state"<<endl;
-					}
-				}
-				if(loop_flag){
-					loop_flag = false;	
 				}
 				
 				if(config.get_frame_level() == 0) //exit should be reconsidered
@@ -321,48 +228,25 @@ namespace car
 					
 			}
 			else{
-				
 				configurations_.pop_back();
-				update_F_sequence(config); //need add uc invariant check and then block inv
+				update_F_sequence(config); 
 				if (safe_reported()) return false;
 				int unroll_level = config.get_unroll_level();
 				int frame_level = config.get_frame_level();
-				// if(unroll_level < unroll_max_){
-				// 	config.set_unroll_level(unroll_level+1);
-				// 	configurations_.push_back(config);
-				// }
-				if(!loop_flag && (frame_level < loop_index)){
+				if(unroll_level < unroll_max_){
+					config.set_unroll_level(unroll_level+1);
+					configurations_.push_back(config);
+				}
+				else if(frame_level < loop_index){
 					config.set_frame_level(frame_level+1);
 					configurations_.push_back(config);
 				}	
-				if(loop_flag){
-					loop_flag = false;
-					// if(config.get_state()->depth() > 0)
-					// 	config.get_state()->set_skip_delete(true); //if config unroll not work, delete config	
-				}
 			}
-		}
-		//delete_set.clear();
-		if(debug_) {
-			std::cout<<"all count is: "<<all_count<<endl;
-			if(all_count >= 700) std::cout<<"big"<<endl;
-			std::cout<<"stack empty"<<endl;
 		}
 		return false;
 		
 	}
-	//config helper
 	
-	void Checker::push_to_delete_set(){
-		for(int i = 0;i < configurations_.size();++i){
-			State* current_s = configurations_[i].get_state();
-			while(current_s->pre() != NULL){
-				current_s->set_skip_delete(true);
-				current_s = current_s->pre();
-			}
-		}
-	}
-
 	/*************propagation****************/
 	bool Checker::propagate (){
 		//int start = forward_ ? (minimal_update_level_ == 0 ? 1 : minimal_update_level_) : minimal_update_level_;
@@ -406,7 +290,7 @@ namespace car
 	}
 	
 	bool Checker::propagate (Cube& cu, int n){
-		solver_->set_assumption (cu, bad_,n,F_.size(), forward_);
+		solver_->set_assumption (cu, n, forward_,1);
 		//solver_->print_assumption();
 		//solver_->print_clauses();
 	    stats_->count_main_solver_SAT_time_start ();
@@ -420,14 +304,13 @@ namespace car
 		
 	//////////////helper functions/////////////////////////////////////////////
 
-	Checker::Checker (Model* model, Statistics& stats, ofstream* dot, bool forward, bool evidence, bool partial, bool propagate, bool begin, bool end, bool inter, bool rotate, bool verbose, bool minimal_uc, bool ilock,int unroll_max,bool debug,int loop_max)
+	Checker::Checker (Model* model, Statistics& stats, ofstream* dot, bool forward, bool evidence, bool partial, bool propagate, bool begin, bool end, bool inter, bool rotate, bool verbose, bool minimal_uc, bool ilock,int unroll_max)
 	{
 	    
 		model_ = model;
 		stats_ = &stats;
 		dot_ = dot;
 		solver_ = NULL;
-		unroll_solver_ = NULL;
 		lift_ = NULL;
 		dead_solver_ = NULL;
 		start_solver_ = NULL;
@@ -439,8 +322,6 @@ namespace car
 		minimal_uc_ = minimal_uc;
 		ilock_ = ilock;
 		unroll_max_ = unroll_max;
-		loop_count_max_= loop_max;
-		debug_ = debug; 
 		evidence_ = evidence;
 		verbose_ = verbose;
 		minimal_update_level_ = F_.size ()-1;
@@ -495,8 +376,6 @@ namespace car
 	void Checker::car_initialization ()
 	{
 	    solver_ = new MainSolver (model_, stats_, verbose_);
-		unroll_solver_ = new MainSolver (model_, stats_, verbose_,true);
-		inv_solver_ = new InvSolver (model_);
 	    if (forward_){
 	    	lift_ = new MainSolver (model_, stats_, verbose_);
 	    	dead_solver_ = new MainSolver (model_, stats_, verbose_);
@@ -523,10 +402,6 @@ namespace car
 	    if (solver_ != NULL) {
 	        delete solver_;
 	        solver_ = NULL;
-	    }
-		if (unroll_solver_ != NULL) {
-	        delete unroll_solver_;
-	        unroll_solver_ = NULL;
 	    }
 	    if (lift_ != NULL) {
 	        delete lift_;
@@ -769,11 +644,7 @@ namespace car
 		int unroll_lev = config.get_unroll_level();
 		State* s = config.get_state();
 		Cube first_input;
-		std::vector<Cube> st_vec;
-		if(unroll_lev == 1)
-			st_vec = solver_->get_state_vector (unroll_lev,first_input);
-		else
-			st_vec = unroll_solver_->get_state_vector (unroll_lev,first_input);;
+		std::vector<Cube> st_vec = solver_->get_state_vector (unroll_lev,first_input);
 		std::vector<State*> res;
 		std::pair<Assignment, Assignment> pa = state_pair (st_vec[0]);
 		State* first_s = new State (s, first_input, pa.second, forward_,false,1); //get the first 
@@ -874,32 +745,8 @@ namespace car
 		int frame_level = config.get_frame_level();
 		
 		bool constraint = false;
-		Cube cu;
-		if(unroll_lev == 1)
-			cu = solver_->get_conflict (forward_, minimal_uc_, constraint, unroll_lev);
-		else
-		 	cu = unroll_solver_->get_conflict (forward_, minimal_uc_, constraint, unroll_lev);
-		if(debug_){
-			cout<<"add uc:"<<endl;
-			car::print(cu);
-		}
-		// if(uc_inv_check(cu)){
-		// 	Cube new_cu = inv_solver_->get_conflict();
-		// 	if(debug_){
-		// 		cout<<"find inv uc:";
-		// 		car::print(new_cu);
-		// 	}
-		// 	inv_cube.push_back(new_cu);
-		// 	solver_->CARSolver::add_clause_from_cube(new_cu);
-		// 	for(int i = 1;i <= unroll_max_;++i){
-		// 		Cube tmp;
-		// 		for(auto it = new_cu.begin();it != new_cu.end();++it){
-		// 			tmp.push_back(model_->prime(*it,i));
-		// 		}
-		// 		solver_->CARSolver::add_clause_from_cube(tmp);
-		// 	}
-		// 	return ;
-		// }	
+		Cube cu = solver_->get_conflict (forward_, minimal_uc_, constraint, unroll_lev);
+		
 	
 		
 		if(cu.empty()){
@@ -1136,6 +983,7 @@ namespace car
 			Frame new_frame;
 			new_frame.push_back(cu);
 			F_.push_back(new_frame);
+
 		}	
 		else{
 			Frame& frame = F_[frame_level+unroll_level];
@@ -1166,7 +1014,9 @@ namespace car
 		if (frame_level+unroll_level-1 < minimal_update_level_)
 			minimal_update_level_ = frame_level+unroll_level;
 		
-		solver_->add_clause_from_cube (cu, frame_level+unroll_level, forward_);
+		
+		for(int i=1;i<=unroll_max_;++i)
+			solver_->add_clause_from_cube (cu, frame_level+unroll_level, forward_,i);
 		// cout<<"frame_lev: "<<frame_level+unroll_level<<endl;
 		// car::print(cu);
 		//to be done

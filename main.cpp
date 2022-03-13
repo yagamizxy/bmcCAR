@@ -16,6 +16,7 @@
 */
 
 #include "checker.h"
+#include "bfschecker.h"
 #include "statistics.h"
 #include "data_structure.h"
 #include "model.h"
@@ -118,12 +119,10 @@ void check_aiger (int argc, char** argv)
    bool partial = false;
    bool propagate = false;
    bool begin = false;
-   bool end = false;
+   bool end = true;
    bool inter = true;
    bool rotate = true;
-   int unroll_max = 20;  //control max unroll level in loop
-   int loop_max = 100;   //control max loop times
-   bool debug = false;
+   int unroll_max = 1;  //control unroll level 
    
    string input;
    string output_dir;
@@ -143,10 +142,14 @@ void check_aiger (int argc, char** argv)
    			ilock = true;
       else if (isdigit(argv[i][1])){
         string tmp = argv[i];
-        loop_max = stoi(tmp.substr(1));
+        unroll_max = stoi(tmp.substr(1));
       }
-      else if (strcmp (argv[i], "-debug") == 0)
-   			debug = true;
+      // else if (strcmp (argv[i], "-3") == 0)
+   		// 	unroll_max = 3;
+      // else if (strcmp (argv[i], "-4") == 0)
+   		// 	unroll_max = 4;
+      // else if (strcmp (argv[i], "-5") == 0)
+   		// 	unroll_max = 5;
    		else if (strcmp (argv[i], "-h") == 0)
    			print_usage ();
    		else if (strcmp (argv[i], "-begin") == 0) {
@@ -238,7 +241,7 @@ void check_aiger (int argc, char** argv)
    //which is consistent with the HWMCC format
    assert (model->num_outputs () >= 1);
    
-   ch = new Checker (model, stats, dot_file, forward, evidence, partial, propagate, begin, end, inter, rotate, verbose, minimal_uc,ilock,unroll_max,debug,loop_max);
+   ch = new Checker (model, stats, dot_file, forward, evidence, partial, propagate, begin, end, inter, rotate, verbose, minimal_uc,ilock,unroll_max);
 
    aiger_reset(aig);
    
