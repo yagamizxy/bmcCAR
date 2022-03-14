@@ -35,7 +35,7 @@ extern "C" {
 namespace car {
 class Model {
 public:
-	Model (aiger*,int unroll_max, const bool verbose = false);
+	Model (aiger*, const bool verbose = false);
 	~Model () {}
 	
 	int prime (const int,int level = 1);

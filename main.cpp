@@ -16,7 +16,6 @@
 */
 
 #include "checker.h"
-#include "bfschecker.h"
 #include "statistics.h"
 #include "data_structure.h"
 #include "model.h"
@@ -122,7 +121,7 @@ void check_aiger (int argc, char** argv)
    bool end = true;
    bool inter = true;
    bool rotate = true;
-   int unroll_max = 1;  //control unroll level 
+   bool debug = false;
    
    string input;
    string output_dir;
@@ -140,16 +139,12 @@ void check_aiger (int argc, char** argv)
    			evidence = true;
       else if (strcmp (argv[i], "-ilock") == 0)
    			ilock = true;
-      else if (isdigit(argv[i][1])){
-        string tmp = argv[i];
-        unroll_max = stoi(tmp.substr(1));
-      }
-      // else if (strcmp (argv[i], "-3") == 0)
-   		// 	unroll_max = 3;
-      // else if (strcmp (argv[i], "-4") == 0)
-   		// 	unroll_max = 4;
-      // else if (strcmp (argv[i], "-5") == 0)
-   		// 	unroll_max = 5;
+      // else if (isdigit(argv[i][1])){
+      //   string tmp = argv[i];
+      //   loop_max = stoi(tmp.substr(1));
+      // }
+      else if (strcmp (argv[i], "-debug") == 0)
+   			debug = true;
    		else if (strcmp (argv[i], "-h") == 0)
    			print_usage ();
    		else if (strcmp (argv[i], "-begin") == 0) {
@@ -229,7 +224,7 @@ void check_aiger (int argc, char** argv)
      aiger_reencode(aig);
      
    stats.count_model_construct_time_start ();
-   model = new Model (aig,unroll_max);
+   model = new Model (aig);
    stats.count_model_construct_time_end ();
    
    if (verbose)
@@ -241,7 +236,7 @@ void check_aiger (int argc, char** argv)
    //which is consistent with the HWMCC format
    assert (model->num_outputs () >= 1);
    
-   ch = new Checker (model, stats, dot_file, forward, evidence, partial, propagate, begin, end, inter, rotate, verbose, minimal_uc,ilock,unroll_max);
+   ch = new Checker (model, stats, dot_file, forward, evidence, partial, propagate, begin, end, inter, rotate, verbose, minimal_uc,ilock,debug);
 
    aiger_reset(aig);
    

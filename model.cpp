@@ -32,10 +32,9 @@ using namespace std;
 
 namespace car{
 
-	Model::Model (aiger* aig, int unroll_max,const bool verbose)
+	Model::Model (aiger* aig, const bool verbose)
 	{
 	    verbose_ = verbose;
-		unroll_max_ = unroll_max;
 	//According to aiger format, inputs should be [1 ... num_inputs_]
 	//and latches should be [num_inputs+1 ... num_latches+num_inputs]]
 		num_inputs_ = aig->num_inputs;
