@@ -34,6 +34,7 @@
 #include "statistics.h"
 #include <fstream>
 #include <algorithm>
+#include <thread>
 
 #define MAX_SOLVER_CALL 500
 #define MAX_TRY 4
@@ -293,6 +294,11 @@ namespace car
 	        }
 	    }
 	    
+		inline void sat_thread(int runningtime)
+		{
+			solver_->solve_with_assumption();
+		}
+
 		inline bool is_sat(Configuration config){
 		//unroll in solver
 		int unroll_lev = config.get_unroll_level();
@@ -304,7 +310,14 @@ namespace car
 		
 		solver_->set_assumption (st2,bad_, new_level, forward_,unroll_lev);
 		stats_->count_main_solver_SAT_time_start ();
-		bool res = solver_->solve_with_assumption ();
+		//if unrolling, set up a thread to time up the SAT solving
+		bool res;
+		if (unroll_lev > 1) {
+			std::thread mythread(sat_thread,1);
+			mythread.join();
+		}
+		else
+			res = solver_->solve_with_assumption ();
 		stats_->count_main_solver_SAT_time_end ();
 		if (!res) {
 			Assignment st3; 
