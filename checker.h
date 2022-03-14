@@ -36,6 +36,7 @@
 #include <algorithm>
 #include <set>
 #include <time.h>
+#include <thread>
 
 #define MAX_SOLVER_CALL 500
 #define MAX_TRY 4
@@ -360,6 +361,10 @@ namespace car
 				
 			else{
 				stats_->count_bmc_solver_SAT_time_start ();
+				//need call a thread to time up
+				//std::thread th1(&MainSolver::solve_with_assumption_thread,unroll_solver_);
+				//time up thread to kill th1
+				// manager thread to control timer and th1
 				res = unroll_solver_->solve_with_assumption ();
 				stats_->count_bmc_solver_SAT_time_end ();
 			}
