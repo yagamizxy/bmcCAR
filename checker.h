@@ -35,12 +35,17 @@
 #include <fstream>
 #include <algorithm>
 #include <set>
+#include <time.h>
 
 #define MAX_SOLVER_CALL 500
 #define MAX_TRY 4
 
 namespace car 
 {
+	//use pair to record the SAT time and do the adaptive unrolling
+	typedef std::pair<State*,int> state_frame_pair;
+ 	typedef std::pair<double,double> total_last_time_pair;
+
     class Comparator {
     public:
         //Comparator (std::vector<int>& counter): counter_ (counter) {}
@@ -61,12 +66,16 @@ namespace car
 			State* s_;
 			int frame_level_;
 			int unroll_level_;
+			double total_sat_time_;
+			double last_sat_time_;
 		public:
 			Configuration(State* s,int frame_level,int unroll_level){
 				//s_ = new State(s);
 				s_ = s;
 				frame_level_ = frame_level;
 				unroll_level_ = unroll_level;
+				total_sat_time_ = 0.0;
+				last_sat_time_ = 0.0;
 			}
 			
 			
@@ -75,6 +84,8 @@ namespace car
 				s_ = config.get_state();
 				frame_level_ = config.get_frame_level();
 				unroll_level_ = config.get_unroll_level();
+				total_sat_time_ = 0.0;
+				last_sat_time_ = 0.0;
 				
 			}
 			~Configuration (){
@@ -92,6 +103,22 @@ namespace car
 				return s_;
 			}
 
+			inline double get_total_sat_time(){
+				return total_sat_time_;
+			}
+
+			inline double get_last_sat_time(){
+				return last_sat_time_;
+			}
+
+			inline void set_total_sat_time(double time){
+				total_sat_time_ = time;
+			}
+
+			inline void set_last_sat_time(double time){
+				last_sat_time_ = time;
+			}
+
 			inline void set_unroll_level(int level){
 				unroll_level_ = level;
 			}
@@ -100,7 +127,8 @@ namespace car
 				frame_level_ = level;
 			}
 			inline void print_config(){
-				std::cout<<"state: "<<s_<<" frame: "<<frame_level_<<" unroll: "<<unroll_level_<<std::endl;
+				std::cout<<"state: "<<s_<<" frame: "<<frame_level_<<" unroll: "<<unroll_level_;
+				std::cout<<" total sat time: "<<total_sat_time_<<std::endl;
 				//car::print(s_->s());
 			}
 	};
@@ -164,6 +192,7 @@ namespace car
 		//Frame frame_;   //to store the frame willing to be added in F_ in one step
 		std::vector<Frame> frame_; //mutiply steps
 		std::vector<Cube> inv_cube; //store the uc can't transist beyond itself
+
 	    
 	    void get_previous (const Assignment& st, const int frame_level, std::vector<int>& res);
 	    void get_priority (const Assignment& st, const int frame_level, std::vector<int>& res);
@@ -303,7 +332,7 @@ namespace car
 	        }
 	    }
 	    
-		inline bool is_sat(Configuration config){
+		inline bool is_sat(Configuration& config){
 			//unroll in solver
 			int unroll_lev = config.get_unroll_level();
 			int new_level = config.get_frame_level();
@@ -322,6 +351,7 @@ namespace car
 			//solve
 			
 			bool res;
+			clock_t begin = clock();
 			if(unroll_lev == 1){
 				stats_->count_main_solver_SAT_time_start ();
 				res = solver_->solve_with_assumption ();
@@ -333,8 +363,10 @@ namespace car
 				res = unroll_solver_->solve_with_assumption ();
 				stats_->count_bmc_solver_SAT_time_end ();
 			}
-				
-			
+			clock_t end = clock();
+			double sat_time = double (end - begin) / CLOCKS_PER_SEC;
+			config.set_last_sat_time(sat_time);
+			config.set_total_sat_time(config.get_total_sat_time()+sat_time);
 			//get recent cube
 			if (!res) {
 				Assignment st3; 

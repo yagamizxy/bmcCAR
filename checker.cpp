@@ -21,6 +21,7 @@
 	Interface for the checker class
 */
 #include "checker.h"
+#include <utility>
 #include <vector>
 #include <iostream>
 #include "utility.h"
@@ -199,7 +200,8 @@ namespace car
 		Configuration c(s,(loop_index),1);
 		assert(configurations_.empty());
 		configurations_.push_back(c);
-	
+
+		//std::pair<state_frame_pair, total_last_time_pair> time_record_pair;
 		while(!configurations_.empty()) //stack non empty
 		{
 
@@ -241,13 +243,19 @@ namespace car
 				int unroll_level = config.get_unroll_level();
 				int frame_level = config.get_frame_level();
 
-				if(unroll_level < 5){
+				//set up adaptive rules to perform unrolling
+				bool can_unroll = (config.get_total_sat_time()+config.get_last_sat_time()) < 0.1;
+				if(can_unroll && (config.get_unroll_level() < 99)){
 					config.set_unroll_level(unroll_level+1);
 					configurations_.push_back(config);
 				}
 				else if(frame_level < loop_index){
 					config.set_frame_level(frame_level+1);
 					configurations_.push_back(config);
+				}
+
+				if(debug_){
+					std::cout<<"is unsat"<<endl;
 				}	
 				
 			}

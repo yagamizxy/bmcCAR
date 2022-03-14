@@ -36,7 +36,8 @@
  	typedef std::vector<int> Clause;
  	typedef std::vector<Cube> Frame;
  	typedef std::vector<Frame> Fsequence;
- 	
+	
+		
  	//state 
  	class State 
  	{
