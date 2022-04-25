@@ -58,11 +58,11 @@
  		if (s == NULL)
  		    dep_ = 0;
  		else
- 		    //dep_ = s->dep_ + 1;
-			 dep_ = s->dep_ + unroll_lev;
+ 		    dep_ = s->dep_ + 1;
 		work_count_ = 0;
 		dead_ = false;
 		added_to_dead_solver_ = false;
+		skip_delete_ = false;
  	}
  	
  	bool State::imply (const Cube& cu) const

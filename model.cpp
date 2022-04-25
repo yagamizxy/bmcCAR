@@ -32,9 +32,10 @@ using namespace std;
 
 namespace car{
 
-	Model::Model (aiger* aig, const bool verbose)
+	Model::Model (aiger* aig, int unroll_max,const bool verbose)
 	{
 	    verbose_ = verbose;
+		unroll_max_ = unroll_max;
 	//According to aiger format, inputs should be [1 ... num_inputs_]
 	//and latches should be [num_inputs+1 ... num_latches+num_inputs]]
 		num_inputs_ = aig->num_inputs;
@@ -45,7 +46,7 @@ namespace car{
 		true_ = aig->maxvar+1;
 		false_ = -true_;
 		//preserve two more ids for TRUE (max_id_ - 1) and FALSE (max_id_)
-		max_id_ = 2*(aig->maxvar+1);
+		max_id_ = aig->maxvar+2;
 		
 
 		collect_trues (aig);
@@ -325,12 +326,13 @@ namespace car{
 	{
 		//assert (id != 0 && abs(id) <= max_id_/2);
 		
-		return (id > 0 ? (id + (max_id_/2)*level) : (id - (max_id_/2)*level));
+		return (id >= 0 ? (id + (max_id_)*level) : (id - (max_id_)*level));
 	}
 		
 	int Model::previous (const int id,int level){
-		assert (abs(id) > (max_id_/2)*level);
-		return (id > 0 ? (id - (max_id_/2)*level) : (id + (max_id_/2)*level));
+		assert (abs(id) >= (max_id_)*level);
+		
+		return (id > 0 ? (id - (max_id_)*level) : (id + (max_id_)*level));
 	}
 	
 	//prime of cls_[id]

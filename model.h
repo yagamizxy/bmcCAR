@@ -35,7 +35,7 @@ extern "C" {
 namespace car {
 class Model {
 public:
-	Model (aiger*, const bool verbose = false);
+	Model (aiger*,int unroll_max, const bool verbose = false);
 	~Model () {}
 	
 	int prime (const int,int level = 1);
@@ -68,12 +68,13 @@ public:
 	
 	//printer
 	void print ();
-
+	inline int get_max_unroll (){return unroll_max_;}
 	
 private:
 	//members
 	bool verbose_;
-		
+	int unroll_max_;
+
 	int num_inputs_;
 	int num_latches_;
 	int num_ands_;

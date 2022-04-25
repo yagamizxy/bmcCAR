@@ -255,7 +255,8 @@ namespace car
     	}
 		//if (verbose_)
 			//cout << endl;
-    	return get_mus(reason);
+    	//return get_mus(reason);
+		return reason;
   	}
 	
 	void CARSolver::add_clause (std::vector<int>& v)

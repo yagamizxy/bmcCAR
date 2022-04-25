@@ -44,7 +44,7 @@ namespace car
     #ifdef ENABLE_PICOSAT
     class CARSolver 
     #else
-	class CARSolver : public Minisat::Solver //Glucose:Solver
+	class CARSolver : public Minisat::Solver//Glucose::Solver 
 	#endif
 	{
 	public:
