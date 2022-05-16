@@ -35,6 +35,7 @@
 #include <fstream>
 #include <algorithm>
 #include <set>
+#include <signal.h>
 
 #define MAX_SOLVER_CALL 500
 #define MAX_TRY 4
@@ -121,6 +122,7 @@ namespace car
 		    }
 		    std::cout << std::endl;
 		}
+		static MainSolver *unroll_solver_;  //sat solver for unrolling 
 	protected:
 		std::vector<Configuration> configurations_;
 		int get_config_smallest_frame_level();
@@ -155,7 +157,7 @@ namespace car
 
 		Model* model_;
 		MainSolver *solver_;
-		MainSolver *unroll_solver_;  //sat solver for unrolling 
+		
 		MainSolver *lift_, *dead_solver_;
 		StartSolver *start_solver_;
 		InvSolver *inv_solver_;
@@ -180,9 +182,9 @@ namespace car
 		
 		bool safe_reported_;  //true means ready to return SAFE
 		//functions
-		bool immediate_satisfiable ();
+		SAT_RES immediate_satisfiable ();
 		bool immediate_satisfiable (const State*);
-		bool immediate_satisfiable (const Cube&);
+		SAT_RES immediate_satisfiable (const Cube&);
 		void initialize_sequences ();
 		bool try_satisfy (const int frame_level);
 		int do_search (const int frame_level);
@@ -303,7 +305,9 @@ namespace car
 	        }
 	    }
 	    
-		inline bool is_sat(Configuration config){
+		static void signal_handler(int signum) { unroll_solver_->interrupt();std::cout<<"interupt"<<std::endl;}
+
+		SAT_RES is_sat(Configuration config){
 		//unroll in solver
 		int unroll_lev = config.get_unroll_level();
 		int new_level = config.get_frame_level();
@@ -320,7 +324,7 @@ namespace car
 			
 		//solve
 		
-		bool res;
+		SAT_RES res;
 		if(unroll_lev == 1){
 			stats_->count_main_solver_SAT_time_start ();
 			res = solver_->solve_with_assumption ();
@@ -329,7 +333,10 @@ namespace car
 			
 		else{
 			stats_->count_bmc_solver_SAT_time_start ();
+			alarm(loop_count_max_);
+			signal (SIGALRM, signal_handler);
 			res = unroll_solver_->solve_with_assumption ();
+			alarm(0);
 			stats_->count_bmc_solver_SAT_time_end ();
 		}
 			
@@ -367,15 +374,15 @@ namespace car
 		
 	}
 
-	    inline bool solver_solve_with_assumption (const Assignment& st, const int p){
+	    inline SAT_RES solver_solve_with_assumption (const Assignment& st, const int p){
 	        //if (reconstruct_solver_required ())
 	            //reconstruct_solver ();
 	        Assignment st2 = st;
 	        //add_intersection_last_uc_in_frame_level_plus_one (st2, -1);
 	        stats_->count_main_solver_SAT_time_start ();
-	        bool res = solver_->solve_with_assumption (st2, p);
+	        SAT_RES res = solver_->solve_with_assumption (st2, p);
 	        stats_->count_main_solver_SAT_time_end ();
-	        if (!res) {
+	        if (res == false_res) {
 	        	Assignment st3; 
 		    	st3.reserve (model_->num_latches());
 		    	for (int i = st2.size ()-model_->num_latches(); i < st2.size (); ++ i)

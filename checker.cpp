@@ -213,7 +213,7 @@ namespace car
 		while(!configurations_.empty()) //stack non empty
 		{
 			if(loop_count_max_ > 0){
-			if (loop_count >= loop_count_max_){
+			if (loop_count >= 1500){
 				//mark delete
 				// for(auto it = delete_set.begin();it != delete_set.end();++it)
 				//  	(*it)->set_skip_delete(true); 
@@ -292,7 +292,8 @@ namespace car
 				continue;
 			}	
 
-			if(is_sat(config)){
+			SAT_RES config_res = is_sat(config);
+			if( config_res == true_res){
 				
 				std::vector<State*> states = get_all_states(config); //states in order, the last is the state in config.framelevel
 				//push states into stack
@@ -309,9 +310,8 @@ namespace car
 						std::cout<<"skip find new state"<<endl;
 					}
 				}
-				if(loop_flag){
-					loop_flag = false;	
-				}
+				//reset flag
+				loop_flag = false;	
 				
 				if(config.get_frame_level() == 0) //exit should be reconsidered
 				{
@@ -320,14 +320,14 @@ namespace car
 				}
 					
 			}
-			else{
+			else if (config_res == false_res){
 				
 				configurations_.pop_back();
 				update_F_sequence(config); //need add uc invariant check and then block inv
 				if (safe_reported()) return false;
 				int unroll_level = config.get_unroll_level();
 				int frame_level = config.get_frame_level();
-				// if(unroll_level < unroll_max_){
+				// if(loop_flag && (unroll_level < unroll_max_)){
 				// 	config.set_unroll_level(unroll_level+1);
 				// 	configurations_.push_back(config);
 				// }
@@ -335,17 +335,24 @@ namespace car
 					config.set_frame_level(frame_level+1);
 					configurations_.push_back(config);
 				}	
-				if(loop_flag){
-					loop_flag = false;
-					// if(config.get_state()->depth() > 0)
-					// 	config.get_state()->set_skip_delete(true); //if config unroll not work, delete config	
+				loop_flag = false;	
+				
+			}
+			else{
+				Cube current_state = config.get_state()->s();
+				int unroll_level = config.get_unroll_level();
+				int frame_level = config.get_frame_level();
+				push_to_frame (current_state, frame_level, unroll_level); //block the state directly if timebound is up
+				configurations_.pop_back();
+				if(debug_){
+					std::cout<<"time up, block state directly"<<endl;
 				}
 			}
 		}
 		//delete_set.clear();
 		if(debug_) {
 			std::cout<<"all count is: "<<all_count<<endl;
-			if(all_count >= 700) std::cout<<"big"<<endl;
+			//if(all_count >= 700) std::cout<<"big"<<endl;
 			std::cout<<"stack empty"<<endl;
 		}
 		return false;
@@ -419,6 +426,7 @@ namespace car
 	
 		
 	//////////////helper functions/////////////////////////////////////////////
+	MainSolver *Checker::unroll_solver_ = NULL;
 
 	Checker::Checker (Model* model, Statistics& stats, ofstream* dot, bool forward, bool evidence, bool partial, bool propagate, bool begin, bool end, bool inter, bool rotate, bool verbose, bool minimal_uc, bool ilock,int unroll_max,bool debug,int loop_max)
 	{
@@ -427,7 +435,7 @@ namespace car
 		stats_ = &stats;
 		dot_ = dot;
 		solver_ = NULL;
-		unroll_solver_ = NULL;
+		//unroll_solver_ = NULL;
 		lift_ = NULL;
 		dead_solver_ = NULL;
 		start_solver_ = NULL;
@@ -495,7 +503,7 @@ namespace car
 	void Checker::car_initialization ()
 	{
 	    solver_ = new MainSolver (model_, stats_, verbose_);
-		unroll_solver_ = new MainSolver (model_, stats_, verbose_,true);
+		// unroll_solver_ = new MainSolver (model_, stats_, verbose_,true);
 		inv_solver_ = new InvSolver (model_);
 	    if (forward_){
 	    	lift_ = new MainSolver (model_, stats_, verbose_);
@@ -524,10 +532,10 @@ namespace car
 	        delete solver_;
 	        solver_ = NULL;
 	    }
-		if (unroll_solver_ != NULL) {
-	        delete unroll_solver_;
-	        unroll_solver_ = NULL;
-	    }
+		// if (unroll_solver_ != NULL) {
+	    //     delete unroll_solver_;
+	    //     unroll_solver_ = NULL;
+	    // }
 	    if (lift_ != NULL) {
 	        delete lift_;
 	        lift_ = NULL;
@@ -543,10 +551,10 @@ namespace car
 	}
 	
 	
-	bool Checker::immediate_satisfiable ()
+	SAT_RES Checker::immediate_satisfiable ()
 	{
-	    bool res = solver_solve_with_assumption (init_->s (), bad_);
-	    if (res)
+	    SAT_RES res = solver_solve_with_assumption (init_->s (), bad_);
+	    if (res == true_res)
 	    {
 	        Assignment st = solver_->get_model ();
 	        std::pair<Assignment, Assignment> pa = state_pair (st);
@@ -555,10 +563,10 @@ namespace car
 	        else
 	            last_ = new State (NULL, pa.first, pa.second, forward_, true);
 	        
-	        return true;
+	        return true_res;
 	    }
 
-	    return false;
+	    return false_res;
 	}
 	
 	void Checker::initialize_sequences ()
@@ -668,15 +676,15 @@ namespace car
 	}
 	
 	//a copy for cube
-	bool Checker::immediate_satisfiable (const Cube& cu)
+	SAT_RES Checker::immediate_satisfiable (const Cube& cu)
 	{
 	    if (forward_)
 	    {
-	        return true;
+	        return true_res;
 	    }
 	    else
 	    {
-	        bool res = solver_solve_with_assumption (cu, bad_);
+	        SAT_RES res = solver_solve_with_assumption (cu, bad_);
 	        return res;
 	    }
 	}

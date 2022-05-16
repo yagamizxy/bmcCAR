@@ -33,6 +33,7 @@
 #include <map>
 #include <assert.h>
 #include <iostream>
+#include <signal.h>
 
 namespace car{
 
@@ -59,7 +60,7 @@ class MainSolver : public CARSolver
 		inline int get_unroll_flag(int& ind) {return unroll_flags_[ind-2];}
 		inline int get_unroll_level(){return current_unroll_level_;}
 
-		inline bool solve_with_assumption (const Assignment& st, const int p)
+		inline SAT_RES solve_with_assumption (const Assignment& st, const int p)
 		{
 		    set_assumption (st, p);
 		    if (verbose_)
@@ -67,7 +68,7 @@ class MainSolver : public CARSolver
 		    return solve_assumption ();
 		}
 		
-		inline bool solve_with_assumption (const Assignment& st)
+		inline SAT_RES solve_with_assumption (const Assignment& st)
 		{
 		    set_assumption (st);
 		    if (verbose_)
@@ -75,12 +76,13 @@ class MainSolver : public CARSolver
 		    return solve_assumption ();
 		}
 		
-		inline bool solve_with_assumption ()
+		SAT_RES solve_with_assumption ()
 		{
 			if (verbose_)
 		    	std::cout << "MainSolver::";
 		    return solve_assumption ();
 		}
+
 		
 		Assignment get_state (const bool forward = true, const bool partial = false);
 		std::vector<Cube> get_state_vector (int unroll_level,Cube& first_input);
@@ -110,6 +112,16 @@ class MainSolver : public CARSolver
 		inline int init_flag () {return init_flag_;}
 		inline int dead_flag () {return dead_flag_;}
 		
+		void add_frame_flags (int frame_level) 
+		{
+		    assert (frame_level > 0);
+			while (frame_level > frame_flag_.size ())
+			{
+				frame_flag_.push_back(max_flag_++);
+			}
+		}
+
+
 	private:
 		//members
 		int max_flag_;
