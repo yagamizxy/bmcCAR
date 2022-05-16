@@ -57,8 +57,6 @@ class Statistics
         	num_detect_dead_state_SAT_calls_ = 0;
         	time_detect_dead_state_SAT_calls_ = 0.0;
         	num_detect_dead_state_success_ = 0;
-            time_bmc_calls_ = 0.0;
-            num_bmc_calls_ = 0;
 
         }
         ~Statistics () {}
@@ -67,14 +65,12 @@ class Statistics
             std::cout << "Time of model construct: " << time_model_construct_ << std::endl;
             std::cout << "Num of total SAT Calls: " << num_SAT_calls_ << std::endl;
             std::cout << "      Num of main solver SAT Calls: " << num_main_solver_SAT_calls_ << std::endl;
-            std::cout << "      Num of BMC SAT Calls: " << num_bmc_calls_ << std::endl;
             std::cout << "      Num of inv solver SAT Calls: " << num_inv_solver_SAT_calls_ << std::endl;
             std::cout << "      Num of start solver SAT Calls: " << num_start_solver_SAT_calls_ << std::endl;
             //std::cout << "      Num of reduce uc SAT Calls: " << num_reduce_uc_SAT_calls_ << std::endl;
             //std::cout << "      Num of detect dead state SAT Calls: " << num_detect_dead_state_SAT_calls_ << std::endl;
             std::cout << "Time of total SAT Calls: " << time_SAT_calls_ << std::endl;
             std::cout << "      Time of main solver SAT Calls: " << time_main_solver_SAT_calls_ << std::endl;
-            std::cout << "      Time of BMC SAT Calls: " << time_bmc_calls_ << std::endl;
             std::cout << "      Time of inv solver SAT Calls: " << time_inv_solver_SAT_calls_ << std::endl;
             std::cout << "      Time of start solver SAT Calls: " << time_start_solver_SAT_calls_ << std::endl;
             //std::cout << "      Time of reduce uc SAT Calls: " << time_reduce_uc_SAT_calls_ << std::endl;
@@ -115,17 +111,6 @@ class Statistics
 	        time_SAT_calls_ += duration;
 	        num_main_solver_SAT_calls_ += 1;
 	        num_SAT_calls_ += 1;
-        }
-        inline void count_bmc_solver_SAT_time_start ()
-        {
-            begin_ = clock ();
-        }
-        inline void count_bmc_solver_SAT_time_end ()
-        {
-            end_ = clock ();
-	        double duration = double (end_ - begin_) / CLOCKS_PER_SEC;
-	        time_bmc_calls_ += duration;
-	        num_bmc_calls_ += 1;
         }
         inline void count_inv_solver_SAT_time_start ()
         {
@@ -262,9 +247,6 @@ class Statistics
         double time_detect_dead_state_SAT_calls_;
         
         int num_detect_dead_state_success_;
-
-        double time_bmc_calls_;
-        int num_bmc_calls_;
         
         clock_t begin_, end_;
         clock_t total_begin_, total_end_;

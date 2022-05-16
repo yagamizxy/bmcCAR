@@ -36,17 +36,17 @@
  	typedef std::vector<int> Clause;
  	typedef std::vector<Cube> Frame;
  	typedef std::vector<Frame> Fsequence;
- 	enum SAT_RES { false_res, true_res, undef_res};
+ 	
  	//state 
  	class State 
  	{
  	public:
- 	    State (const Assignment& latches) : s_ (latches), pre_ (NULL), next_ (NULL), dead_ (false),dep_ (0), added_to_dead_solver_ (false),skip_delete_(false) {}
+ 	    State (const Assignment& latches) : s_ (latches), pre_ (NULL), next_ (NULL), dead_ (false),dep_ (0), added_to_dead_solver_ (false) {}
 
  		State (const State *s, const Assignment& inputs, const Assignment& latches, const bool forward, const bool last = false,const int unroll_lev=1); 
  		
  		State (State *s): pre_ (s->pre_), next_(s->next_), s_(s->s_), inputs_(s->inputs_), last_inputs_(s->last_inputs_), 
- 		init_ (s->init_), id_ (s->id_), dep_ (s->dep_), dead_ (false), added_to_dead_solver_ (false),skip_delete_(s->skip_delete_) {}
+ 		init_ (s->init_), id_ (s->id_), dep_ (s->dep_), dead_ (false), added_to_dead_solver_ (false) {}
 
  		~State () {}
  		
@@ -99,8 +99,6 @@
  		inline void set_added_to_dead_solver (bool val) {added_to_dead_solver_ = val;}
  		inline bool added_to_dead_solver () {return added_to_dead_solver_;}
 		inline void set_input(Cube& input){inputs_ = input;}
-		inline void set_skip_delete(bool val) {skip_delete_ = val;}
-		inline bool get_skip_delete() {return skip_delete_;}
  	private:
  	//s_ contains all latches, but if the value of latch l is not cared, assign it to -1.
  		Assignment s_;
@@ -115,8 +113,6 @@
  		bool added_to_dead_solver_; //whether it is added to the dead solver
  		int id_;     //the state id
  		int dep_;    //the length from the starting state
-		
-		bool skip_delete_;
  		
  		bool computed_next_;  //flag to label whether the next part of the state has been computed
  		std::vector<int> nexts_; //the next part which can be decided by the state without input

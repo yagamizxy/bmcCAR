@@ -38,7 +38,6 @@ extern "C" {
 #include <vector>
 #include <assert.h>
 #include <fstream>      //zhang xiaou add this code
-#include "data_structure.h"
 
 namespace car
 {
@@ -67,7 +66,7 @@ namespace car
 		#endif
 		Statistics* stats_;   //zhang xiaoyu made this change
 		//functions
-		SAT_RES solve_assumption ();
+		bool solve_assumption ();
 		std::vector<int> get_model ();    //get the model from SAT solver
  		std::vector<int> get_uc ();       //get UC from SAT solver
 		//zhang xiaoyu code begins

@@ -16,6 +16,7 @@
 */
 
 #include "checker.h"
+#include "bfschecker.h"
 #include "statistics.h"
 #include "data_structure.h"
 #include "model.h"
@@ -27,7 +28,6 @@
 #include <signal.h>
 #include <assert.h>
 #include <string>
-#include "mainsolver.h"
 using namespace std;
 using namespace car;
 
@@ -35,7 +35,6 @@ Statistics stats;
 ofstream* dot_file = NULL;
 Model * model = NULL;
 Checker *ch = NULL;
-
 
 void  signal_handler (int sig_num)
 {
@@ -123,9 +122,7 @@ void check_aiger (int argc, char** argv)
    bool end = true;
    bool inter = true;
    bool rotate = true;
-   int unroll_max = 20;  //control max unroll level in loop
-   int loop_max = 200;   //control max loop times
-   bool debug = false;
+   int unroll_max = 1;  //control unroll level 
    
    string input;
    string output_dir;
@@ -145,10 +142,14 @@ void check_aiger (int argc, char** argv)
    			ilock = true;
       else if (isdigit(argv[i][1])){
         string tmp = argv[i];
-        loop_max = stoi(tmp.substr(1));
+        unroll_max = stoi(tmp.substr(1));
       }
-      else if (strcmp (argv[i], "-debug") == 0)
-   			debug = true;
+      // else if (strcmp (argv[i], "-3") == 0)
+   		// 	unroll_max = 3;
+      // else if (strcmp (argv[i], "-4") == 0)
+   		// 	unroll_max = 4;
+      // else if (strcmp (argv[i], "-5") == 0)
+   		// 	unroll_max = 5;
    		else if (strcmp (argv[i], "-h") == 0)
    			print_usage ();
    		else if (strcmp (argv[i], "-begin") == 0) {
@@ -239,9 +240,8 @@ void check_aiger (int argc, char** argv)
    //assume that there is only one output needs to be checked in each aiger model, 
    //which is consistent with the HWMCC format
    assert (model->num_outputs () >= 1);
-
-   Checker::unroll_solver_ = new MainSolver(model, &stats, verbose,true);
-   ch = new Checker (model, stats, dot_file, forward, evidence, partial, propagate, begin, end, inter, rotate, verbose, minimal_uc,ilock,unroll_max,debug,loop_max);
+   
+   ch = new Checker (model, stats, dot_file, forward, evidence, partial, propagate, begin, end, inter, rotate, verbose, minimal_uc,ilock,unroll_max);
 
    aiger_reset(aig);
    
@@ -250,7 +250,6 @@ void check_aiger (int argc, char** argv)
    delete model;
    model = NULL;
    res_file.close ();
-   delete Checker::unroll_solver_;
    
    //write the dot file tail
    if (dot_file != NULL)
@@ -270,10 +269,9 @@ void check_aiger (int argc, char** argv)
 
 int main (int argc, char ** argv)
 {
-  //signal (SIGALRM, signal_handler);
-  //alarm(30);
   signal (SIGINT, signal_handler);
+  
   check_aiger (argc, argv);
-  //alarm(0);
+  
   return 0;
 }
