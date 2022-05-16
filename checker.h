@@ -32,8 +32,11 @@
 #include <assert.h>
 #include "utility.h"
 #include "statistics.h"
+#include <time.h>
+
 #include <fstream>
 #include <algorithm>
+#include <set>
 
 #define MAX_SOLVER_CALL 500
 #define MAX_TRY 4
@@ -74,6 +77,7 @@ namespace car
 				s_ = config.get_state();
 				frame_level_ = config.get_frame_level();
 				unroll_level_ = config.get_unroll_level();
+				
 			}
 			~Configuration (){
 							//delete s_;
@@ -98,7 +102,8 @@ namespace car
 				frame_level_ = level;
 			}
 			inline void print_config(){
-				std::cout<<s_<<" "<<frame_level_<<" "<<unroll_level_<<std::endl;
+				std::cout<<"state: "<<s_<<" frame: "<<frame_level_<<" unroll: "<<unroll_level_<<std::endl;
+				//car::print(s_->s());
 			}
 	};
 
@@ -106,7 +111,7 @@ namespace car
 	class Checker 
 	{
 	public:
-		Checker (Model* model, Statistics& stats, std::ofstream* dot, bool forward = true, bool evidence = false, bool partial = false, bool propagate = false, bool begin = false, bool end = true, bool inter = true, bool rotate = false, bool verbose = false, bool minimal_uc = false,bool ilock = false,int unroll_max = 1);
+		Checker (Model* model, Statistics& stats, std::ofstream* dot, bool forward, bool evidence, bool partial, bool propagate, bool begin, bool end, bool inter, bool rotate, bool verbose, bool minimal_uc,bool ilock,int unroll_max,bool debug,int bmc_max_time);
 		~Checker ();
 		
 		bool check (std::ofstream&);
@@ -120,6 +125,7 @@ namespace car
 		}
 	protected:
 		std::vector<Configuration> configurations_;
+		int get_config_smallest_frame_level();
 		//flags 
 		bool forward_;
 		bool partial_state_;
@@ -129,6 +135,9 @@ namespace car
 		bool propagate_;
 		bool ilock_;
 		int unroll_max_;
+		bool debug_;
+		int bmc_max_time_;
+
 		//std::vector<std::pair<Cube, int>> unroll_pair; //store the unroll uc and uc framelevel
 		//new flags for reorder and state enumeration
 		bool begin_, end_;  // for state enumeration
@@ -148,6 +157,7 @@ namespace car
 
 		Model* model_;
 		MainSolver *solver_;
+		MainSolver *unroll_solver_;  //sat solver for unrolling 
 		MainSolver *lift_, *dead_solver_;
 		StartSolver *start_solver_;
 		InvSolver *inv_solver_;
@@ -155,7 +165,7 @@ namespace car
 		Bsequence B_;
 		//Frame frame_;   //to store the frame willing to be added in F_ in one step
 		std::vector<Frame> frame_; //mutiply steps
-		
+		std::vector<Cube> inv_cube; //store the uc can't transist beyond itself
 	    
 	    void get_previous (const Assignment& st, const int frame_level, std::vector<int>& res);
 	    void get_priority (const Assignment& st, const int frame_level, std::vector<int>& res);
@@ -168,6 +178,7 @@ namespace car
 	    Cube comm_; 
 	    std::vector<Cube> deads_;
 	    bool dead_flag_;
+		std::set<State*> loop_delete_state_set_;
 		
 		bool safe_reported_;  //true means ready to return SAFE
 		//functions
@@ -186,14 +197,17 @@ namespace car
 		bool solve_with (const Cube &cu, const int frame_level);
 		State* get_new_state (const State *s,const int unroll_lev=1);
 		std::vector<State*> get_all_states(Configuration& config);
+		std::vector<State*> bmc_get_all_states(int unroll_level);
 		void extend_F_sequence ();
 		void update_F_sequence (Configuration& config);
+		void bmc_update_F_sequence (int unroll_lev);
 		void update_frame_by_relative (const State* s, const int frame_level);
 		void update_B_sequence (State* s);
 		int get_new_level (const State *s, const int frame_level);
 		void push_to_frame (Cube& cu, const int frame_level,int unroll_lev=1);
 		bool tried_before (const State* s, const int frame_level);
-		
+		void push_to_delete_set();
+		void delete_next_states(Configuration& config);
 		
 		State* enumerate_start_state ();
 		State* get_new_start_state ();
@@ -203,6 +217,9 @@ namespace car
 		void car_finalization ();
 		void destroy_states ();
 		bool car_check ();
+		bool bmc_check();
+		
+		static void alarm_handler();
 		
 		void get_partial (Assignment& st, const State* s=NULL);
 		void add_dead_to_solvers (Cube& dead_uc);
@@ -224,7 +241,7 @@ namespace car
 		//inline functions
 		inline bool is_initial (Cube& c){return init_->imply (c);}
 		inline void create_inv_solver (){
-			inv_solver_ = new InvSolver (model_, verbose_);
+			inv_solver_ = new InvSolver (model_);
 			add_dead_to_inv_solver ();
 		}
 		inline void delete_inv_solver (){
@@ -299,13 +316,32 @@ namespace car
 		int new_level = config.get_frame_level();
 		Assignment st2 = (config.get_state())->s();
 		add_intersection_last_uc_in_frame_level_plus_one (st2, new_level);
-		// unroll in solver
-		//get unroll_lev prime of state
+
+		//set assumption
+		if(unroll_lev == 1)
+			solver_->set_assumption (st2,bad_, new_level, forward_);
+		else{
+			unroll_solver_->push_frame_to_unroll_solver(F_[new_level],new_level,unroll_lev);
+			unroll_solver_->set_assumption (st2,bad_, new_level, forward_,unroll_lev);
+		}
+			
+		//solve
 		
-		solver_->set_assumption (st2,bad_, new_level, forward_,unroll_lev);
-		stats_->count_main_solver_SAT_time_start ();
-		bool res = solver_->solve_with_assumption ();
-		stats_->count_main_solver_SAT_time_end ();
+		bool res;
+		if(unroll_lev == 1){
+			stats_->count_main_solver_SAT_time_start ();
+			res = solver_->solve_with_assumption ();
+			stats_->count_main_solver_SAT_time_end ();
+		}
+			
+		else{
+			stats_->count_bmc_solver_SAT_time_start ();
+			res = unroll_solver_->solve_with_assumption ();
+			stats_->count_bmc_solver_SAT_time_end ();
+		}
+			
+		
+		//get recent cube
 		if (!res) {
 			Assignment st3; 
 			st3.reserve (model_->num_latches());
@@ -318,6 +354,38 @@ namespace car
 		    }
 
 		return res;
+	}
+
+	inline bool bmc_sat(int unroll){
+		//unroll in solver
+		Assignment st2 = init_->s();
+		
+		unroll_solver_->bmc_set_assumption (st2,bad_,unroll);
+		
+		bool res;
+			stats_->count_bmc_solver_SAT_time_start ();
+			res = unroll_solver_->solve_with_assumption ();
+			stats_->count_bmc_solver_SAT_time_end ();
+		return res;
+	}
+
+
+	inline bool uc_inv_check(Cube& cu){
+		//check whether cu is a inv
+		int inv_flag = inv_solver_->get_flag();
+		inv_solver_->set_assumption(cu,inv_flag);
+		//add clause
+		Cube tmp;
+		tmp.push_back(-inv_flag);
+		for(auto it = cu.begin();it != cu.end();++it)
+			tmp.push_back(-model_->prime(*it, 1));
+		inv_solver_->add_clause(tmp);
+		//solve
+		stats_->count_main_solver_SAT_time_start ();
+		bool res = inv_solver_->solve_with_assumption ();
+		stats_->count_main_solver_SAT_time_end ();
+		return !res;
+		
 	}
 
 	    inline bool solver_solve_with_assumption (const Assignment& st, const int p){
@@ -379,6 +447,8 @@ namespace car
 	        print_F ();
 	        print_B ();
 	    }
+		
+		//inline void add_loop_max_byten(){loop_count_max_ += 50;}
 	    
 	};
 }

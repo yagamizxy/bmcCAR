@@ -16,7 +16,6 @@
 */
 
 #include "checker.h"
-#include "bfschecker.h"
 #include "statistics.h"
 #include "data_structure.h"
 #include "model.h"
@@ -122,7 +121,9 @@ void check_aiger (int argc, char** argv)
    bool end = true;
    bool inter = true;
    bool rotate = true;
-   int unroll_max = 1;  //control unroll level 
+   int unroll_max = 20;  //control max unroll level in loop
+   int bmc_max_time = 600;   //default max bmc time is 600 s/10 min
+   bool debug = false;
    
    string input;
    string output_dir;
@@ -142,8 +143,10 @@ void check_aiger (int argc, char** argv)
    			ilock = true;
       else if (isdigit(argv[i][1])){
         string tmp = argv[i];
-        unroll_max = stoi(tmp.substr(1));
+        bmc_max_time = stoi(tmp.substr(1));
       }
+      else if (strcmp (argv[i], "-debug") == 0)
+   			debug = true;
       // else if (strcmp (argv[i], "-3") == 0)
    		// 	unroll_max = 3;
       // else if (strcmp (argv[i], "-4") == 0)
@@ -241,7 +244,7 @@ void check_aiger (int argc, char** argv)
    //which is consistent with the HWMCC format
    assert (model->num_outputs () >= 1);
    
-   ch = new Checker (model, stats, dot_file, forward, evidence, partial, propagate, begin, end, inter, rotate, verbose, minimal_uc,ilock,unroll_max);
+   ch = new Checker (model, stats, dot_file, forward, evidence, partial, propagate, begin, end, inter, rotate, verbose, minimal_uc,ilock,unroll_max,debug,bmc_max_time);
 
    aiger_reset(aig);
    
