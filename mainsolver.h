@@ -84,6 +84,13 @@ class MainSolver : public CARSolver
 		    	std::cout << "MainSolver::";
 		    return solve_assumption ();
 		}
+
+		inline SAT_RES unroll_solve_with_assumption ()
+		{
+			if (verbose_)
+		    	std::cout << "MainSolver::";
+		    return unroll_solve_assumption ();
+		}
 		
 		Assignment get_state (const bool forward = true, const bool partial = false);
 		std::vector<Cube> get_state_vector (int unroll_level,Cube& first_input);

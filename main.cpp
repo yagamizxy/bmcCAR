@@ -244,6 +244,7 @@ void check_aiger (int argc, char** argv)
    //which is consistent with the HWMCC format
    assert (model->num_outputs () >= 1);
    
+   Checker::unroll_solver_ = new MainSolver(model, &stats, verbose,true);
    ch = new Checker (model, stats, dot_file, forward, evidence, partial, propagate, begin, end, inter, rotate, verbose, minimal_uc,ilock,unroll_max,debug,bmc_max_time);
 
    aiger_reset(aig);
@@ -253,6 +254,7 @@ void check_aiger (int argc, char** argv)
    delete model;
    model = NULL;
    res_file.close ();
+   delete Checker::unroll_solver_;
    
    //write the dot file tail
    if (dot_file != NULL)

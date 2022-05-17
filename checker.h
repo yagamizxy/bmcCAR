@@ -37,6 +37,7 @@
 #include <fstream>
 #include <algorithm>
 #include <set>
+#include <signal.h>
 
 #define MAX_SOLVER_CALL 500
 #define MAX_TRY 4
@@ -123,6 +124,7 @@ namespace car
 		    }
 		    std::cout << std::endl;
 		}
+		static MainSolver *unroll_solver_;  //sat solver for unrolling 
 	protected:
 		std::vector<Configuration> configurations_;
 		int get_config_smallest_frame_level();
@@ -157,7 +159,6 @@ namespace car
 
 		Model* model_;
 		MainSolver *solver_;
-		MainSolver *unroll_solver_;  //sat solver for unrolling 
 		MainSolver *lift_, *dead_solver_;
 		StartSolver *start_solver_;
 		InvSolver *inv_solver_;
@@ -309,6 +310,8 @@ namespace car
 	            solver_->add_new_frame (F_[i], i, forward_);
 	        }
 	    }
+
+		static void signal_handler(int signum) { unroll_solver_->interrupt();}
 	    
 		inline bool is_sat(Configuration config){
 		//unroll in solver
@@ -356,15 +359,15 @@ namespace car
 		return res;
 	}
 
-	inline bool bmc_sat(int unroll){
+	inline SAT_RES bmc_sat(int unroll){
 		//unroll in solver
 		Assignment st2 = init_->s();
 		
 		unroll_solver_->bmc_set_assumption (st2,bad_,unroll);
 		
-		bool res;
+		SAT_RES res;
 			stats_->count_bmc_solver_SAT_time_start ();
-			res = unroll_solver_->solve_with_assumption ();
+			res = unroll_solver_->unroll_solve_with_assumption ();
 			stats_->count_bmc_solver_SAT_time_end ();
 		return res;
 	}

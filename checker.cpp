@@ -68,7 +68,10 @@ namespace car
 			initialize_sequences ();
 	        
 			bool bmc_res = false;
+			alarm(bmc_max_time_);
+			signal (SIGALRM, signal_handler);
 			bmc_res = bmc_check();
+			alarm(0);
 			
 			bool res;
 			if(bmc_res) res = true;
@@ -98,28 +101,30 @@ namespace car
 			return true;
 		}
 		int unroll = 1;
-		double all_bmc_time = 0.0;
-		double last_bmc_time = 0.0;
+		
 		while (true) {
 			clock_t begin = clock();
 			if(debug_) std::cout<<"bmc unroll: "<<unroll<<endl;
 			unroll_solver_->unroll_one_more(unroll);
-			bool res = bmc_sat(unroll);
-			if(res){
+			SAT_RES res = bmc_sat(unroll);
+			if(res == true_res){
 				//get counterexample
 				std::vector<State*> states = bmc_get_all_states(unroll);
 				return true;
 			}
-			else{
+			else if (res == false_res){
 				bmc_update_F_sequence(unroll);
 			}
-			if(bmc_max_time_ < 60){
-				clock_t end = clock();
-				last_bmc_time = double (end - begin) / CLOCKS_PER_SEC;
-				all_bmc_time += last_bmc_time;
-				//predict the next bmctime is equal to the last bmctiime, if all + next surpass the max,end
-				if((all_bmc_time + last_bmc_time)>= double(bmc_max_time_*60)) return false;
-				}
+			else{
+				return false;
+			}
+			// if(bmc_max_time_ < 60){
+			// 	clock_t end = clock();
+			// 	last_bmc_time = double (end - begin) / CLOCKS_PER_SEC;
+			// 	all_bmc_time += last_bmc_time;
+			// 	//predict the next bmctime is equal to the last bmctiime, if all + next surpass the max,end
+			// 	if((all_bmc_time + last_bmc_time)>= double(bmc_max_time_*60)) return false;
+			// }
 			
 			unroll++;
 		}
@@ -377,6 +382,7 @@ namespace car
 		return false;
 	}
 	
+	MainSolver *Checker::unroll_solver_ = NULL;
 		
 	//////////////helper functions/////////////////////////////////////////////
 
@@ -387,7 +393,7 @@ namespace car
 		stats_ = &stats;
 		dot_ = dot;
 		solver_ = NULL;
-		unroll_solver_ = NULL;
+		//unroll_solver_ = NULL;
 		lift_ = NULL;
 		dead_solver_ = NULL;
 		start_solver_ = NULL;
@@ -455,7 +461,7 @@ namespace car
 	void Checker::car_initialization ()
 	{
 	    solver_ = new MainSolver (model_, stats_, verbose_);
-		unroll_solver_ = new MainSolver (model_, stats_, verbose_,true);
+		//unroll_solver_ = new MainSolver (model_, stats_, verbose_,true);
 		inv_solver_ = new InvSolver (model_);
 	    if (forward_){
 	    	lift_ = new MainSolver (model_, stats_, verbose_);
@@ -484,10 +490,10 @@ namespace car
 	        delete solver_;
 	        solver_ = NULL;
 	    }
-		if (unroll_solver_ != NULL) {
-	        delete unroll_solver_;
-	        unroll_solver_ = NULL;
-	    }
+		// if (unroll_solver_ != NULL) {
+	    //     delete unroll_solver_;
+	    //     unroll_solver_ = NULL;
+	    // }
 	    if (lift_ != NULL) {
 	        delete lift_;
 	        lift_ = NULL;
