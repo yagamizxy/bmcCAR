@@ -134,8 +134,27 @@ namespace car
 		if (ret == l_True)
      		return true;
    		else if (ret == l_Undef)
-     		exit (0);
+     		exit(0);
    		return false;
+	}
+
+	SAT_RES CARSolver::unroll_solve_assumption ()
+	{
+		lbool ret = solveLimited (assumption_);
+		/*
+		if (verbose_)
+		{
+			cout << "CARSolver::solve_assumption: assumption_ is" << endl;
+			for (int i = 0; i < assumption_.size (); i ++)
+				cout << lit_id (assumption_[i]) << ", ";
+			cout << endl;
+		}
+		*/
+		if (ret == l_True)
+     		return true_res;
+   		else if (ret == l_Undef)
+     		return undef_res;
+   		return false_res;
 	}
 	
 	//return the model from SAT solver when it provides SAT
@@ -331,19 +350,19 @@ namespace car
  	    add_clause (v);
  	}
  	
- 	void CARSolver::print_clauses ()
-	{
-		#ifndef ENABLE_PICOSAT
-		cout << "clauses in SAT solver: \n";
-		for (int i = 0; i < clauses.size (); i ++)
-		{
-			Clause& c = ca[clauses[i]];
-			for (int j = 0; j < c.size (); j ++)
-				cout << lit_id (c[j]) << " ";
-			cout << "0 " << endl;
-		}
-		#endif
-	}
+ 	// void CARSolver::print_clauses ()
+	// {
+	// 	#ifndef ENABLE_PICOSAT
+	// 	cout << "clauses in SAT solver: \n";
+	// 	for (int i = 0; i < clauses.size (); i ++)
+	// 	{
+	// 		Clause& c = ca[clauses[i]];
+	// 		for (int j = 0; j < c.size (); j ++)
+	// 			cout << lit_id (c[j]) << " ";
+	// 		cout << "0 " << endl;
+	// 	}
+	// 	#endif
+	// }
 	
 	void CARSolver::print_assumption ()
 	{

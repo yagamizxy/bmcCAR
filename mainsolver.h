@@ -75,6 +75,13 @@ class MainSolver : public CARSolver
 		    return solve_assumption ();
 		}
 		
+		inline SAT_RES unroll_solve_with_assumption ()
+		{
+			if (verbose_)
+		    	std::cout << "MainSolver::";
+		    return unroll_solve_assumption ();
+		}
+
 		inline bool solve_with_assumption ()
 		{
 			if (verbose_)

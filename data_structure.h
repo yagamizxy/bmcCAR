@@ -36,7 +36,7 @@
  	typedef std::vector<int> Clause;
  	typedef std::vector<Cube> Frame;
  	typedef std::vector<Frame> Fsequence;
-	
+	enum SAT_RES { false_res, true_res, undef_res};
 		
  	//state 
  	class State 

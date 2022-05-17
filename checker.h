@@ -36,7 +36,7 @@
 #include <algorithm>
 #include <set>
 #include <time.h>
-#include <thread>
+#include <signal.h>
 
 #define MAX_SOLVER_CALL 500
 #define MAX_TRY 4
@@ -67,16 +67,12 @@ namespace car
 			State* s_;
 			int frame_level_;
 			int unroll_level_;
-			double total_sat_time_;
-			double last_sat_time_;
 		public:
 			Configuration(State* s,int frame_level,int unroll_level){
 				//s_ = new State(s);
 				s_ = s;
 				frame_level_ = frame_level;
 				unroll_level_ = unroll_level;
-				total_sat_time_ = 0.0;
-				last_sat_time_ = 0.0;
 			}
 			
 			
@@ -85,8 +81,6 @@ namespace car
 				s_ = config.get_state();
 				frame_level_ = config.get_frame_level();
 				unroll_level_ = config.get_unroll_level();
-				total_sat_time_ = 0.0;
-				last_sat_time_ = 0.0;
 				
 			}
 			~Configuration (){
@@ -104,22 +98,6 @@ namespace car
 				return s_;
 			}
 
-			inline double get_total_sat_time(){
-				return total_sat_time_;
-			}
-
-			inline double get_last_sat_time(){
-				return last_sat_time_;
-			}
-
-			inline void set_total_sat_time(double time){
-				total_sat_time_ = time;
-			}
-
-			inline void set_last_sat_time(double time){
-				last_sat_time_ = time;
-			}
-
 			inline void set_unroll_level(int level){
 				unroll_level_ = level;
 			}
@@ -129,7 +107,6 @@ namespace car
 			}
 			inline void print_config(){
 				std::cout<<"state: "<<s_<<" frame: "<<frame_level_<<" unroll: "<<unroll_level_;
-				std::cout<<" total sat time: "<<total_sat_time_<<std::endl;
 				//car::print(s_->s());
 			}
 	};
@@ -138,7 +115,7 @@ namespace car
 	class Checker 
 	{
 	public:
-		Checker (Model* model, Statistics& stats, std::ofstream* dot, bool forward, bool evidence, bool partial, bool propagate, bool begin, bool end, bool inter, bool rotate, bool verbose, bool minimal_uc,bool ilock,bool debug);
+		Checker (Model* model, Statistics& stats, std::ofstream* dot, bool forward, bool evidence, bool partial, bool propagate, bool begin, bool end, bool inter, bool rotate, bool verbose, bool minimal_uc,bool ilock,bool debug,int max_unroll_time);
 		~Checker ();
 		
 		bool check (std::ofstream&);
@@ -150,6 +127,9 @@ namespace car
 		    }
 		    std::cout << std::endl;
 		}
+
+		static MainSolver *unroll_solver_;  //sat solver for unrolling 
+
 	protected:
 		std::vector<Configuration> configurations_;
 		int get_config_smallest_frame_level();
@@ -161,9 +141,8 @@ namespace car
 		bool verbose_;
 		bool propagate_;
 		bool ilock_;
-		int unroll_max_;
+		int max_unroll_time_;
 		bool debug_;
-		int loop_count_max_;
 
 		//std::vector<std::pair<Cube, int>> unroll_pair; //store the unroll uc and uc framelevel
 		//new flags for reorder and state enumeration
@@ -184,7 +163,7 @@ namespace car
 
 		Model* model_;
 		MainSolver *solver_;
-		MainSolver *unroll_solver_;  //sat solver for unrolling 
+		//MainSolver *unroll_solver_;  //sat solver for unrolling 
 		MainSolver *lift_, *dead_solver_;
 		StartSolver *start_solver_;
 		InvSolver *inv_solver_;
@@ -332,8 +311,10 @@ namespace car
 	            solver_->add_new_frame (F_[i], i, forward_);
 	        }
 	    }
+
+		static void signal_handler(int signum) { unroll_solver_->interrupt();}
 	    
-		inline bool is_sat(Configuration& config){
+		SAT_RES is_sat(Configuration& config){
 			//unroll in solver
 			int unroll_lev = config.get_unroll_level();
 			int new_level = config.get_frame_level();
@@ -351,27 +332,23 @@ namespace car
 				
 			//solve
 			
-			bool res;
-			clock_t begin = clock();
+			SAT_RES res;
+			
 			if(unroll_lev == 1){
 				stats_->count_main_solver_SAT_time_start ();
-				res = solver_->solve_with_assumption ();
+				res = solver_->unroll_solve_with_assumption ();
 				stats_->count_main_solver_SAT_time_end ();
 			}
 				
 			else{
 				stats_->count_bmc_solver_SAT_time_start ();
-				//need call a thread to time up
-				//std::thread th1(&MainSolver::solve_with_assumption_thread,unroll_solver_);
-				//time up thread to kill th1
-				// manager thread to control timer and th1
-				res = unroll_solver_->solve_with_assumption ();
+				alarm(max_unroll_time_);
+				signal (SIGALRM, signal_handler);
+				res = unroll_solver_->unroll_solve_with_assumption ();
+				alarm(0);
 				stats_->count_bmc_solver_SAT_time_end ();
 			}
-			clock_t end = clock();
-			double sat_time = double (end - begin) / CLOCKS_PER_SEC;
-			config.set_last_sat_time(sat_time);
-			config.set_total_sat_time(config.get_total_sat_time()+sat_time);
+			
 			//get recent cube
 			if (!res) {
 				Assignment st3; 

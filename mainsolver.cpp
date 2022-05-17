@@ -29,9 +29,10 @@
 #include <algorithm>
 using namespace std;
 
-#define MAX_UNROLL 100
+
 namespace car
 {
+	#define MAX_UNROLL 100
 	//int MainSolver::max_flag_ = -1;
 	//vector<int> MainSolver::frame_flags_;
 	

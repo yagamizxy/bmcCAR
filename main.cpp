@@ -122,7 +122,7 @@ void check_aiger (int argc, char** argv)
    bool inter = true;
    bool rotate = true;
    bool debug = false;
-   
+   int max_unroll_time = 10;
    string input;
    string output_dir;
    bool input_set = false;
@@ -139,10 +139,10 @@ void check_aiger (int argc, char** argv)
    			evidence = true;
       else if (strcmp (argv[i], "-ilock") == 0)
    			ilock = true;
-      // else if (isdigit(argv[i][1])){
-      //   string tmp = argv[i];
-      //   loop_max = stoi(tmp.substr(1));
-      // }
+      else if (isdigit(argv[i][1])){
+        string tmp = argv[i];
+        max_unroll_time = stoi(tmp.substr(1));
+      }
       else if (strcmp (argv[i], "-debug") == 0)
    			debug = true;
    		else if (strcmp (argv[i], "-h") == 0)
@@ -235,8 +235,10 @@ void check_aiger (int argc, char** argv)
    //assume that there is only one output needs to be checked in each aiger model, 
    //which is consistent with the HWMCC format
    assert (model->num_outputs () >= 1);
+
+   Checker::unroll_solver_ = new MainSolver(model, &stats, verbose,true);
    
-   ch = new Checker (model, stats, dot_file, forward, evidence, partial, propagate, begin, end, inter, rotate, verbose, minimal_uc,ilock,debug);
+   ch = new Checker (model, stats, dot_file, forward, evidence, partial, propagate, begin, end, inter, rotate, verbose, minimal_uc,ilock,debug,max_unroll_time);
 
    aiger_reset(aig);
    
@@ -245,6 +247,7 @@ void check_aiger (int argc, char** argv)
    delete model;
    model = NULL;
    res_file.close ();
+   delete Checker::unroll_solver_;
    
    //write the dot file tail
    if (dot_file != NULL)
